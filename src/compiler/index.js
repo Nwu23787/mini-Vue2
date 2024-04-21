@@ -1,17 +1,6 @@
-const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z]*`
-const qnameCapture = `((?:${ncname}\\:)?${ncname})`
+import { parseHTML } from "./parse"
 
-// 匹配 <xxx 开始的标签名，也就是开始标签的前半部分，最终匹配到的分组是开始标签的名字
-const startTagOpen = new RegExp(`^<${qnameCapture}`)
 
-// 匹配结束标签 </xxx> 最终匹配到的分组是结束标签的名字
-const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
-
-// 匹配标签上的属性，属性的第一个分组是属性的名称（key），第3 | 4 | 5 分组中有一个是他的值
-const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
-
-// 匹配开始标签的结束部分的 比如 <span> 的>  和 <br/> 的 />
-const startTagClose = /^\s*(\/?)>/
 
 // 匹配双花括号 {{value}}
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
@@ -37,149 +26,102 @@ const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
  */
 
 // 将 template 模版转化成 AST 语法树
-function parseHTML(html) {
 
-    const ELEMENT_TYPE = 1 // 元素节点类型
-    const TXET_TYPE = 3 // 文本节点类型
-
-    let stack = [] // 栈，用于创建语法树时判断节点的父节点
-    let currentParent = null; // 栈顶指针，指向栈中的最后一个节点 
-    let root = null // 指向 AST 语法树的根节点
-
-    // 创建语法树节点函数
-    function createASTElement(tag, attrs) {
-        return {
-            tag,
-            type: ELEMENT_TYPE,
-            attrs,
-            children: [],
-            parent: null
+function genProps(attrs) {
+    let str = ``
+    for (let i = 0; i < attrs.length; i++) {
+        let attr = attrs[i]
+        if (attr.name === 'style') {
+            // 单独处理style属性，因为要将这个属性封装成对象
+            let obj = {}
+            attr.value.split(';').forEach(item => {
+                let [key, value] = item.split(':')
+                obj[key] = value
+            })
+            attr.value = obj
         }
+        str += `${attr.name}:${JSON.stringify(attr.value)},`
     }
-
-    // 下面的三个方法都是用于生成抽象语法树的
-    // 处理开始标签
-    function start(tag, attrs) {
-        // 遇到开始标签，入栈
-        let node = createASTElement(tag, attrs)
-
-        if (!root) root = node //还没有根AST节点，那么这个节点就是根节点
-
-        // 栈中最后一个节点就是新节点的父节点
-        if (currentParent) {
-            node.parent = currentParent
-            currentParent.children.push(node)
-        }
-
-        // 节点入栈
-        stack.push(node)
-        // 移动栈顶指针
-        currentParent = node
-    }
-
-    // 处理文本标签
-    function chars(text) {
-        // 把空文本删掉，实际上源码中是会保存两个空格的，多于两个空格的就删掉了
-        text = text.replace(/\s/g, '')
-        // 文本标签不用入栈，他就是当前栈顶指针指向的那个开始节点的子节点
-        text && currentParent.children.push({
-            type: TXET_TYPE,
-            text,
-            parent: currentParent
-        })
-    }
-
-    // 处理结束标签
-    function end(tag) {
-        // 遇到结束标签，弹出栈里的最后一个开始节点，并且更新 currentParent
-        stack.pop()
-        currentParent = stack[stack.length - 1]
-    }
-
-    // 删除html的前 n 位字符
-    function advance(n) {
-        html = html.substring(n)
-    }
-    // 解析开始标签
-    function parseStarTag() {
-        const start = html.match(startTagOpen) // 得到一个数组，以div为例：['<div','div']，没匹配到，start 为 null
-        if (start) {
-            // 匹配到了，返回开始标签的对象
-            const match = {
-                tagName: start[1],
-                attrs: []
-            }
-            // 把匹配过的部分删掉，便于继续向后匹配
-            advance(start[0].length)
-
-            // 继续向后匹配，获得开始标签的属性，一直匹配到开始标签的结束位置
-            let attr, end
-            while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
-                // 把匹配到的属性删掉
-                if (attr) advance(attr[0].length)
-                match.attrs.push({
-                    name: attr[1],
-                    value: attr[3] || attr[4] || attr[5] // 或的特性，找到第一个真值就不会再继续了
-                })
-            }
-            // 把开始标签的结束位置删掉
-            if (end) {
-                advance(end[0].length)
-            }
-
-            return match
-        } else {
-            return false
-        }
-    }
-    // html 一般是以 < 开头的，如果不是以 < 开头的，说明开头是一个文本节点
-    while (html) {
-        // 如果 textEnd 为 0，说明模版开头是一个标签（开始或结束标签未知）
-        // 如果 textEnd 不是 0，说明模版开头是一段文本，textEnd 表示文本节点结束的位置
-        let textEnd = html.indexOf('<')
-
-        if (textEnd === 0) {
-            //开头是标签，尝试匹配是否为开始标签
-            const startTagMatch = parseStarTag()
-
-            // 匹配到了开始标签，也把开始标签从html中删除掉了，需要进行下一轮的匹配了
-            if (startTagMatch) {
-                // 把开始标签交给生成语法树的函数处理
-                start(startTagMatch.tagName, startTagMatch.attrs)
-                continue
-            }
-            else {
-                // 不是开始标签，那么匹配到的一定是结束标签
-                const endTagMatch = html.match(endTag)
-                if (endTagMatch) {
-                    // 把结束标签交给生成语法树的函数处理
-                    end(endTagMatch[1])
-                    // 把匹配过的部分删除
-                    advance(endTagMatch[0].length)
-                    continue
-                }
-            }
-        }
-
-        // 处理文本节点
-        if (textEnd > 0) {
-            let text = html.substring(0, textEnd) // 截取文本节点的内容
-
-            if (text) {
-                // 把文本节点的内容交给生成语法树的函数处理
-                chars(text)
-                advance(text.length) // 把文本节点从 html 中删除
-            }
-        }
-    }
-
-    console.log(root);
+    return `{${str.slice(0, -1)}}`
 }
+
+// 生成某一子节点的字符串参数
+const genChild = (item) => {
+    if (item.type === 1) {
+        // 是元素节点，直接调用codegen生成
+        return codegen(item)
+    } else {
+        // 是文本节点
+        // 判断文本里面有没有变量，就是 {{}}
+        let text = item.text
+        if (!defaultTagRE.test(text)) {
+            // 是纯文本节点
+            return `_v(${JSON.stringify(text)})`
+        } else {
+            // 文本中有变量
+            let tokens = [] //  保存截取的结果
+            let match
+            defaultTagRE.lastIndex = 0 // 上面test了，将指针归位
+            let lastIndex = 0 // 用于截取非变量文本
+            while (match = defaultTagRE.exec(text)) { // exec 方法，遇到满足正则的字符串就返回一次
+                let index = match.index
+                // 如果这次匹配到结果的开始位置和上一次匹配结束的位置不同，说明这两个位置中间有一个非变量的纯文本
+                if (index > lastIndex) {
+                    tokens.push(JSON.stringify(text.slice(lastIndex, index)))
+                }
+                // 匹配变量的结果
+                tokens.push(`_s(${match[1].trim()})`) //去掉{{}} 中的空格
+
+                // 移动 lastIndex，保存上一次匹配的最后位置
+                lastIndex = index + match[0].length
+            }
+
+            // 循环结束之后，还要判断一次有没有剩余的纯文本
+            if (lastIndex < text.length) {
+                // 说明上一次匹配之后，还剩余了文本，那么这个文本一定不是变量
+                tokens.push(JSON.stringify(text.slice(lastIndex)))
+            }
+            return `_v(${tokens.join('+')})`
+        }
+    }
+}
+
+// 生成所有子节点的字符串参数
+const genChildren = (children) => {
+    return children.map(item => genChild(item))
+}
+
+function codegen(ast) {
+    let children = genChildren(ast.children)
+    let code = `_c('${ast.tag}',${ast.attrs.length > 0 ? genProps(ast.attrs) : 'null'}${ast.children.length ? `,${children}` : ''})`
+    // console.log(code);
+    return code
+}
+
 
 // 编译模版，返回render方法
 export function compileToFunction(template) {
     // 1. 将 template 模版转化成 AST 语法树
     let ast = parseHTML(template)
 
+    // console.log(ast);
     // 2. 生成 render 方法
+
+    // 目标：把AST语法树组装成下面这样的语法
+    // _c 生成元素节点
+    // _v 生成文本节点
+    // _s 处理变量
+    // render(){
+    // return _c('div', { id: 'app', style: { "color": 'red' } }, _v(_s(name) + 'hello'), _v('span', null, _v('text1')))
+    // }
+
+    let code = codegen(ast)
+
+    code = `with(this){
+        return ${code}
+    }` // 使用 with，改变变量的取值位置，让函数中的变量都向vm上去取值
+
+    let render = new Function(code) // 使用 new Function 生成 render 函数
+
+    return render
 }

@@ -1,4 +1,5 @@
 import { compileToFunction } from "./compiler/index"
+import { mountComponent } from "./lifecycle"
 import { initState } from "./state"
 
 /**
@@ -40,14 +41,16 @@ export function initMixin(Vue) {
                     template = opts.template
                 }
             }
-            if (template) {
+            if (template && el) {
                 // 编译模版，获取 render
                 const render = compileToFunction(template)
                 opts.render = render
             }
         }
-
         // 如果有模版，则编译成render；反之如果有render，则不必编译。模版和render函数最终都会被统一成render函数
+        console.log(opts.render);
+
+        mountComponent(vm,el) //得到了render 函数之后，执行组件的挂载
     }
 }
 
