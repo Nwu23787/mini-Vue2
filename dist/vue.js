@@ -356,6 +356,7 @@
   function compileToFunction(template) {
     // 1. 将 template 模版转化成 AST 语法树
     var ast = parseHTML(template);
+    console.log(ast);
 
     // console.log(ast);
     // 2. 生成 render 方法
@@ -369,12 +370,103 @@
     // }
 
     var code = codegen(ast);
+    console.log(code);
     code = "with(this){\n        return ".concat(code, "\n    }"); // 使用 with，改变变量的取值位置，让函数中的变量都向vm上去取值
 
     var render = new Function(code); // 使用 new Function 生成 render 函数
 
     return render;
   }
+
+  var id$1 = 0;
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+      this.id = id$1++;
+      // 用于收集数据对应的 watcher
+      this.subs = [];
+    }
+
+    // 将 dep 传递给 watcher，进行去重
+    return _createClass(Dep, [{
+      key: "depend",
+      value: function depend() {
+        // this.subs.push(Dep.target)
+        Dep.target.addDep(this);
+      }
+
+      // 给 dep 收集对应的 watcher 依赖
+    }, {
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher);
+      }
+
+      // 数据更新后，通知 watcher 更新
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        });
+      }
+    }]);
+  }();
+  Dep.target = null;
+
+  var id = 0;
+  var Watcher = /*#__PURE__*/function () {
+    // vm watcher 对应的组件的实例，fn 组件对应的渲染函数
+    function Watcher(vm, fn, options) {
+      _classCallCheck(this, Watcher);
+      // 使用 id 来区分不同组件的 watcher
+      this.id = id++;
+      // 把渲染函数绑定watcher到实例上，调用getter即可重新渲染，更新视图
+      this.getter = fn;
+      // 标记是否是一个渲染watcher
+      this.renderWatcher = options;
+      // 收集 watcher 对应的 dep
+      this.deps = [];
+      // 使用 set 保存 deps 中所有 dep 的id，便于去重操作
+      this.depsId = new Set();
+      // 调用
+      this.get();
+    }
+
+    // 渲染函数
+    return _createClass(Watcher, [{
+      key: "get",
+      value: function get() {
+        // 在渲染开始之前，把 watcher 挂载到全局，也就是 Dep 类上（静态属性）
+        Dep.target = this;
+        this.getter();
+        // 渲染结束，把全局的 watcher 卸载
+        Dep.target = null;
+      }
+
+      // 给 watch 添加 dep
+    }, {
+      key: "addDep",
+      value: function addDep(dep) {
+        // 要判断这个 dep 是否已经被记录，防止重复记录
+        var id = dep.id;
+        if (!this.depsId.has(id)) {
+          // id 不存在与 depsId 中，则这个 dep 没有被 watcher 收集过
+          this.deps.push(dep);
+          this.depsId.add(id);
+          // 让 dep 收集 watcher
+          dep.addSub(this);
+        }
+      }
+
+      // 更新视图
+    }, {
+      key: "update",
+      value: function update() {
+        this.get();
+      }
+    }]);
+  }();
 
   // 构造 VNode 的相关方法
 
@@ -417,6 +509,7 @@
   // AST 是描述语言的
   // 虚拟 DOM 是描述 DOM 的
 
+  // 创建真实DOM
   function createElm(vnode) {
     // 将 VNode 解构
     var tag = vnode.tag,
@@ -466,6 +559,10 @@
    */
   function patch(oldVnode, newVnode) {
     var isRealElement = oldVnode.nodeType;
+    // console.log(document.getElementsByTagName('body'));
+    // oldVnode = document.getElementById('app')
+    // debugger
+
     if (isRealElement) {
       // 对象上有 nodeType 属性，则为真实 DOM
       var elm = oldVnode;
@@ -478,6 +575,7 @@
       // 先把新 DOM 插入到老DOM的后面，然后再删除老DOM，这样可以保证新DOM替换了老DOM
       parentElm.insertBefore(newElm, elm.nextSibling);
       parentElm.removeChild(elm);
+      // oldVnode = newElm;
 
       // return newElm
     }
@@ -508,6 +606,7 @@
 
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
+      this.$el = document.getElementById('app');
       var el = this.$el;
       // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
       return patch(el, vnode); // patch 更新 或者 初始化渲染 方法
@@ -516,14 +615,23 @@
   function mountComponent(vm, el) {
     // 将 el 对应的真实 dom 挂载到 vm 上，便于后面获取
     vm.$el = el;
-    // 1. 调用 render 方法，获得虚拟 DOM
-    var vnode = vm._render();
-    console.log(vnode);
+    // // 1. 调用 render 方法，获得虚拟 DOM
+    // let vnode = vm._render()
+    // console.log(vnode);
 
-    // 2. 根据虚拟 DOM，生成真实 DOM
-    vm._update(vnode);
+    // // 2. 根据虚拟 DOM，生成真实 DOM
+    // vm._update(vnode)
 
-    // 3. 将真实 DOM 插入到 el 中
+    var updateComponent = function updateComponent() {
+      // 1. 调用 render 方法，获得虚拟 DOM
+      var vnode = vm._render();
+      console.log(vnode);
+
+      // 2. 根据虚拟 DOM，生成真实 DOM
+      vm._update(vnode);
+    };
+    var w = new Watcher(vm, updateComponent, true);
+    console.log(w);
   }
 
   // 重写数组中可以改变数组的7个方法，并返回重写后的原型对象
@@ -619,11 +727,16 @@
   function defineReactive(target, key, value) {
     // 对属性值进行深层递归遍历
     observe(value);
+    // 为每个属性绑定一个dep
+    var dep = new Dep();
     // 闭包。对外暴露了 set 和 get 方法，从而使 value 值不会被回收
     Object.defineProperty(target, key, {
       // 访问属性的时候，触发get
       get: function get() {
-        console.log('get', value);
+        if (Dep.target) {
+          // 全局上存在 watcher，收集这个 watcher
+          dep.depend();
+        }
         return value;
       },
       // 修改属性的时候，触发set
@@ -633,6 +746,8 @@
         // 修改之后重新劫持，因为如果用户将值修改为对象，那么要对这个对象进行深度劫持
         observe(newValue);
         value = newValue;
+        // 修改了响应式数据之后，通知观察者更新
+        dep.notify();
       }
     });
   }
@@ -730,7 +845,8 @@
         }
       }
       // 如果有模版，则编译成render；反之如果有render，则不必编译。模版和render函数最终都会被统一成render函数
-      console.log(opts.render);
+      // console.log(opts.render);
+
       mountComponent(vm, el); //得到了render 函数之后，执行组件的挂载
     };
   }

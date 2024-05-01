@@ -10,7 +10,7 @@
 <body>
   <div id="app" style="color:red;margin: 120px;" key="112">
     <div>{{name}} <span class="footer">text1 {{age}} text2 {{name}} text3</span> 你好 </div>
-    <span>{{age}}</span>
+    <span>{{age}} {{obj.name}}</span>
     <br />
   </div>
   <script src="vue.js"></script>
@@ -29,6 +29,11 @@
       },
       el: '#app'
     })
+    setTimeout(() => {
+      vm.age = 1999999
+      vm.obj.name = '1111111'
+      vm.name = 'ssss'
+    }, 1000);
   </script>
 </body>
 

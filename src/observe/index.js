@@ -1,4 +1,5 @@
 import newProto from "./array"
+import Dep from "./dep"
 
 /**
  * 将传入的 data 对象使用 defineproperty 进行劫持
@@ -57,11 +58,16 @@ class Observer {
 export function defineReactive(target, key, value) {
     // 对属性值进行深层递归遍历
     observe(value)
+    // 为每个属性绑定一个dep
+    let dep = new Dep()
     // 闭包。对外暴露了 set 和 get 方法，从而使 value 值不会被回收
     Object.defineProperty(target, key, {
         // 访问属性的时候，触发get
         get() {
-            console.log('get', value);
+            if(Dep.target){
+                // 全局上存在 watcher，收集这个 watcher
+                dep.depend()
+            }
             return value
         },
         // 修改属性的时候，触发set
@@ -71,6 +77,8 @@ export function defineReactive(target, key, value) {
             // 修改之后重新劫持，因为如果用户将值修改为对象，那么要对这个对象进行深度劫持
             observe(newValue)
             value = newValue
+            // 修改了响应式数据之后，通知观察者更新
+            dep.notify()
         }
     })
 }

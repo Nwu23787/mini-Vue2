@@ -1,5 +1,7 @@
+import Watcher from "./observe/watcher"
 import { createElement, createTextVNode } from "./vdom/index"
 
+// 创建真实DOM
 function createElm(vnode) {
     // 将 VNode 解构
     let { tag, data, children, text } = vnode
@@ -46,6 +48,9 @@ function patchProps(el, props) {
  */
 function patch(oldVnode, newVnode) {
     const isRealElement = oldVnode.nodeType
+    // console.log(document.getElementsByTagName('body'));
+    // oldVnode = document.getElementById('app')
+    // debugger
 
     if (isRealElement) {
         // 对象上有 nodeType 属性，则为真实 DOM
@@ -60,6 +65,7 @@ function patch(oldVnode, newVnode) {
         // 先把新 DOM 插入到老DOM的后面，然后再删除老DOM，这样可以保证新DOM替换了老DOM
         parentElm.insertBefore(newElm, elm.nextSibling)
         parentElm.removeChild(elm)
+        // oldVnode = newElm;
 
         // return newElm
     } else {
@@ -93,6 +99,7 @@ export function initLifeCycle(Vue) {
 
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
+        this.$el = document.getElementById('app')
         const el = this.$el
         // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
         return patch(el, vnode) // patch 更新 或者 初始化渲染 方法
@@ -103,12 +110,23 @@ export function initLifeCycle(Vue) {
 export function mountComponent(vm, el) {
     // 将 el 对应的真实 dom 挂载到 vm 上，便于后面获取
     vm.$el = el
-    // 1. 调用 render 方法，获得虚拟 DOM
-    let vnode = vm._render()
-    console.log(vnode);
+    // // 1. 调用 render 方法，获得虚拟 DOM
+    // let vnode = vm._render()
+    // console.log(vnode);
 
-    // 2. 根据虚拟 DOM，生成真实 DOM
-    vm._update(vnode)
+    // // 2. 根据虚拟 DOM，生成真实 DOM
+    // vm._update(vnode)
 
-    // 3. 将真实 DOM 插入到 el 中
+
+    const updateComponent = () => {
+        // 1. 调用 render 方法，获得虚拟 DOM
+        let vnode = vm._render()
+        console.log(vnode);
+
+        // 2. 根据虚拟 DOM，生成真实 DOM
+        vm._update(vnode)
+    }
+    const w = new Watcher(vm, updateComponent, true)
+    console.log(w);
+
 }
