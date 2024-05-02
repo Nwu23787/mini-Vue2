@@ -463,10 +463,96 @@
     }, {
       key: "update",
       value: function update() {
+        // 把当前的 watcher 暂存在队列中
+        queueWatcher(this);
+        // this.get()
+      }
+
+      // 执行渲染逻辑
+    }, {
+      key: "run",
+      value: function run() {
         this.get();
       }
     }]);
-  }();
+  }(); // 缓存 watcher 队列
+  var queue = [];
+  // 去重的辅助对象，源码中没用 set，用的是对象
+  var has = [];
+  // 防抖
+  var pending = false;
+
+  // 刷新 watcher 队列
+  function flushSchedulerQueue() {
+    // 拷贝一份queue，如果在更新的过程中产生了新的 watcher，会加入到 queue 队列中，下一次清空队列时才执行，不会在这一次执行
+    var flushQueue = queue.slice(0);
+    queue = [];
+    has = {};
+    pending = false;
+    flushQueue.forEach(function (item) {
+      return item.run();
+    });
+  }
+  function queueWatcher(watcher) {
+    // 通过判断watcher的id进行去重，避免同一个组件多次刷新
+    var id = watcher.id;
+    if (!has[id]) {
+      // 没有重复
+      queue.push(watcher);
+      has[id] = true;
+      // 在第一次加入 watcher 之后，就会开启一个刷新队列的异步任务，后面再加入 watcher ，不会再开启异步任务
+      if (!pending) {
+        nextTick(flushSchedulerQueue);
+        pending = true;
+      }
+    }
+  }
+
+  // nextTick 的任务排队
+  var callbacks = [];
+  // 防抖
+  var waiting = false;
+  // 清空调度队列
+  function flushCallbacks() {
+    var cds = callbacks.slice(0);
+    waiting = false;
+    callbacks = [];
+    cds.forEach(function (cb) {
+      return cb();
+    });
+  }
+
+  // nextTick 优雅降级
+  var timerFunc;
+  if (Promise) {
+    timerFunc = function timerFunc() {
+      Promise.resolve().then(flushCallbacks);
+    };
+  } else if (MutationObserver) {
+    var observer = new MutationObserver(flushCallbacks);
+    var textNode = document.createTextNode(1);
+    observer.observe(textNode, {
+      characterData: true
+    });
+    timerFunc = function timerFunc() {
+      textNode.textContent = 2;
+    };
+  } else if (setImmediate) {
+    timerFunc = function timerFunc() {
+      setImmediate(flushCallbacks);
+    };
+  } else {
+    timerFunc = function timerFunc() {
+      setTimeout(flushCallbacks, 0);
+    };
+  }
+  function nextTick(cb) {
+    callbacks.push(cb);
+    if (!waiting) {
+      timerFunc();
+      waiting = true;
+    }
+  }
 
   // 构造 VNode 的相关方法
 
@@ -858,6 +944,7 @@
   }
   initMixin(Vue); //将 _init 方法添加到 Vue 实例原型上，供 Vue 实例调用
   initLifeCycle(Vue);
+  Vue.prototype.$nextTick = nextTick;
 
   return Vue;
 

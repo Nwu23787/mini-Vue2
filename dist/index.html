@@ -29,11 +29,19 @@
       },
       el: '#app'
     })
-    setTimeout(() => {
-      vm.age = 1999999
-      vm.obj.name = '1111111'
+
+
+
       vm.name = 'ssss'
-    }, 1000);
+      vm.name = '1111'
+      vm.name = '2222'
+      vm.name = '3333'
+
+      vm.age = 11111111111111111111
+
+      vm.$nextTick(()=>{
+      console.log('123',app.innerHTML);
+    })
   </script>
 </body>
 
