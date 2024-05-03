@@ -78,7 +78,7 @@ function queueWatcher(watcher) {
         // 没有重复
         queue.push(watcher)
         has[id] = true
-        // 在第一次加入 watcher 之后，就会开启一个刷新队列的异步任务，后面再加入 watcher ，不会再开启异步任务
+        // 在第一次加入 watcher 之后，就会将刷新队列的任务加入
         if (!pending) {
             nextTick(flushSchedulerQueue);
             pending = true

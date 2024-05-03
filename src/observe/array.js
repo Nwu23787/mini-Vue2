@@ -30,6 +30,10 @@
             if (newNode) {
                 this.__ob__.observerArray(newNode)
             }
+            
+            // 通知对应 watcher ，数组发生了变化
+            this.__ob__.dep.notify()
+
             return res
         }
 

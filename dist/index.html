@@ -8,40 +8,22 @@
 </head>
 
 <body>
-  <div id="app" style="color:red;margin: 120px;" key="112">
-    <div>{{name}} <span class="footer">text1 {{age}} text2 {{name}} text3</span> 你好 </div>
-    <span>{{age}} {{obj.name}}</span>
-    <br />
+  <div id="app">
+    {{arr}}
   </div>
   <script src="vue.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
   <script>
     const vm = new Vue({
       data() {
         return {
-          name: 'zs',
-          age: 34,
-          obj: {
-            name: 'ls',
-            age: 122
-          },
-          hobby: ['eat', 'drink']
+          arr: [1, 2, 3, ['a', 'b']]
         }
       },
       el: '#app'
     })
-
-
-
-      vm.name = 'ssss'
-      vm.name = '1111'
-      vm.name = '2222'
-      vm.name = '3333'
-
-      vm.age = 11111111111111111111
-
-      vm.$nextTick(()=>{
-      console.log('123',app.innerHTML);
-    })
+    vm.arr.push(100)
+    vm.arr[3].push('c')
   </script>
 </body>
 

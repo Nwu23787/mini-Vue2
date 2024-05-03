@@ -500,7 +500,7 @@
       // 没有重复
       queue.push(watcher);
       has[id] = true;
-      // 在第一次加入 watcher 之后，就会开启一个刷新队列的异步任务，后面再加入 watcher ，不会再开启异步任务
+      // 在第一次加入 watcher 之后，就会将刷新队列的任务加入
       if (!pending) {
         nextTick(flushSchedulerQueue);
         pending = true;
@@ -745,6 +745,9 @@
       if (newNode) {
         this.__ob__.observerArray(newNode);
       }
+
+      // 通知对应 watcher ，数组发生了变化
+      this.__ob__.dep.notify();
       return res;
     };
   });
@@ -769,6 +772,10 @@
   var Observer = /*#__PURE__*/function () {
     function Observer(data) {
       _classCallCheck(this, Observer);
+      // data 可能是对象或者数组，在这给 data 新增属性 dep，让他去收集依赖
+      // 给每个对象都增加收集依赖功能
+      this.dep = new Dep();
+
       // 把 data 对应的 Observer 实例添加到了 data 上，这样做的话，1 是可以通过监测是否存在_ob_属性来检测 data 是否已被监听过，2 是通过 _ob_ 可以访问到 walk 和 observerArray 以及其他的方法，便于其他地方使用
       // 必须把 _ob_ 设置为不可枚举属性才行，否则在递归遍历监听的时候会死循环
       Object.defineProperty(data, '__ob__', {
@@ -805,6 +812,21 @@
     }]);
   }();
   /**
+   * 递归解决数组嵌套，视图更新
+   * @param {*} value 
+   */
+  function dependArray(value) {
+    for (var i = 0; i < value.length; i++) {
+      var current = value[i];
+      // 数组中的数组也要收集当前这个 watcher，数组中的数组值发生变化，当前组件也要刷新
+      current.__ob__ && current.__ob__.dep.depend();
+      if (Array.isArray(current)) {
+        dependArray(current);
+      }
+    }
+  }
+
+  /**
    * 实现对象指定属性的劫持
    * @param {Object} target 被劫持的对象
    * @param {String} key 需要被劫持的属性
@@ -812,7 +834,7 @@
    */
   function defineReactive(target, key, value) {
     // 对属性值进行深层递归遍历
-    observe(value);
+    var childOb = observe(value); // childOb.dep 用来收集依赖
     // 为每个属性绑定一个dep
     var dep = new Dep();
     // 闭包。对外暴露了 set 和 get 方法，从而使 value 值不会被回收
@@ -822,6 +844,12 @@
         if (Dep.target) {
           // 全局上存在 watcher，收集这个 watcher
           dep.depend();
+          if (childOb) {
+            childOb.dep.depend();
+            if (Array.isArray(value)) {
+              dependArray(value);
+            }
+          }
         }
         return value;
       },
