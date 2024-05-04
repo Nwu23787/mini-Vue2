@@ -103,7 +103,6 @@ function codegen(ast) {
 export function compileToFunction(template) {
     // 1. 将 template 模版转化成 AST 语法树
     let ast = parseHTML(template)
-    console.log(ast);
 
     // console.log(ast);
     // 2. 生成 render 方法
@@ -117,7 +116,6 @@ export function compileToFunction(template) {
     // }
 
     let code = codegen(ast)
-    console.log(code);
 
     code = `with(this){
         return ${code}

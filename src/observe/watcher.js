@@ -1,4 +1,4 @@
-import Dep from "./dep";
+import Dep, { popTarget, pushTarget } from "./dep";
 
 let id = 0;
 
@@ -15,17 +15,37 @@ class Watcher {
         this.deps = []
         // 使用 set 保存 deps 中所有 dep 的id，便于去重操作
         this.depsId = new Set()
-        // 调用
-        this.get()
+        // 是否为懒 watcher
+        this.lazy = options.lazy
+        //计算属性的缓存值
+        this.dirty = this.lazy
+        // 初始化调用
+        this.lazy ? undefined : this.get()
+        // 记录 vm
+        this.vm = vm
     }
 
     // 渲染函数
     get() {
         // 在渲染开始之前，把 watcher 挂载到全局，也就是 Dep 类上（静态属性）
-        Dep.target = this
-        this.getter();
-        // 渲染结束，把全局的 watcher 卸载
-        Dep.target = null
+        pushTarget(this)
+        let value = this.getter.call(this.vm);
+        // 渲染结束，把当前的 watcher 出栈
+        popTarget()
+        return value
+    }
+
+    // 计算属性求值
+    evaluate() {
+        // 获取到用户定义的 get 方法的返回值
+        this.value = this.get()
+        this.dirty = false
+    }
+    // 计算属性用，让每一个计算属性
+    depend() {
+        for (let i = this.deps.length - 1; i >= 0; i--) {
+            this.deps[i].depend(this)
+        }
     }
 
     // 给 watch 添加 dep
@@ -43,9 +63,13 @@ class Watcher {
 
     // 更新视图
     update() {
-        // 把当前的 watcher 暂存在队列中
-        queueWatcher(this)
-        // this.get()
+        // 如果是计算属性依赖的值发生变化，标志脏值，下次取值会重新计算
+        if (this.lazy) {
+            this.dirty = true
+        } else {
+            // 把当前的 watcher 暂存在队列中
+            queueWatcher(this)
+        }
     }
 
     // 执行渲染逻辑

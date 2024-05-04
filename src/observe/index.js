@@ -72,6 +72,7 @@ function dependArray(value) {
 
 }
 
+
 /**
  * 实现对象指定属性的劫持
  * @param {Object} target 被劫持的对象
@@ -101,7 +102,6 @@ export function defineReactive(target, key, value) {
         },
         // 修改属性的时候，触发set
         set(newValue) {
-            console.log('set', newValue);
             if (newValue === value) return
             // 修改之后重新劫持，因为如果用户将值修改为对象，那么要对这个对象进行深度劫持
             observe(newValue)

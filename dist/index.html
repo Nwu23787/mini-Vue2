@@ -9,21 +9,35 @@
 
 <body>
   <div id="app">
-    {{arr}}
+    {{fullName}} {{fullName}} {{fullName}}
   </div>
   <script src="vue.js"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
   <script>
     const vm = new Vue({
-      data() {
-        return {
-          arr: [1, 2, 3, ['a', 'b']]
-        }
+      data: {
+        firstName: '张',
+        lastName: '劲奇'
       },
-      el: '#app'
+      el: '#app',
+      computed: {
+        // fullName() {
+        //   return this.firstName + this.lastName
+        // }
+        fullName: {
+          get() {
+            return this.firstName + this.lastName
+          },
+          set() {
+            console.log(123);
+          }
+        }
+      }
     })
-    vm.arr.push(100)
-    vm.arr[3].push('c')
+
+    setTimeout(() => {
+      vm.firstName = 1232
+    }, 1000);
   </script>
 </body>
 

@@ -60,7 +60,6 @@ function patch(oldVnode, newVnode) {
 
         // 创建真实 dom
         let newElm = createElm(newVnode)
-        console.log(newElm);
 
         // 先把新 DOM 插入到老DOM的后面，然后再删除老DOM，这样可以保证新DOM替换了老DOM
         parentElm.insertBefore(newElm, elm.nextSibling)
@@ -121,12 +120,10 @@ export function mountComponent(vm, el) {
     const updateComponent = () => {
         // 1. 调用 render 方法，获得虚拟 DOM
         let vnode = vm._render()
-        console.log(vnode);
 
         // 2. 根据虚拟 DOM，生成真实 DOM
         vm._update(vnode)
     }
     const w = new Watcher(vm, updateComponent, true)
-    console.log(w);
 
 }

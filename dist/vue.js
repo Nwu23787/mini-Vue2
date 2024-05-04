@@ -356,7 +356,6 @@
   function compileToFunction(template) {
     // 1. 将 template 模版转化成 AST 语法树
     var ast = parseHTML(template);
-    console.log(ast);
 
     // console.log(ast);
     // 2. 生成 render 方法
@@ -370,7 +369,6 @@
     // }
 
     var code = codegen(ast);
-    console.log(code);
     code = "with(this){\n        return ".concat(code, "\n    }"); // 使用 with，改变变量的取值位置，让函数中的变量都向vm上去取值
 
     var render = new Function(code); // 使用 new Function 生成 render 函数
@@ -413,6 +411,25 @@
     }]);
   }();
   Dep.target = null;
+  var stack = [];
+
+  /**
+   * watcher 入栈
+   * @param {Object} this watcher 
+   */
+  function pushTarget(watcher) {
+    stack.push(watcher);
+    Dep.target = watcher; // 全局记录
+  }
+
+  /**
+   * watcher 出栈
+   * @param {Object} this watcher 
+   */
+  function popTarget() {
+    stack.pop();
+    Dep.target = stack[stack.length - 1];
+  }
 
   var id = 0;
   var Watcher = /*#__PURE__*/function () {
@@ -429,8 +446,14 @@
       this.deps = [];
       // 使用 set 保存 deps 中所有 dep 的id，便于去重操作
       this.depsId = new Set();
-      // 调用
-      this.get();
+      // 是否为懒 watcher
+      this.lazy = options.lazy;
+      //计算属性的缓存值
+      this.dirty = this.lazy;
+      // 初始化调用
+      this.lazy ? undefined : this.get();
+      // 记录 vm
+      this.vm = vm;
     }
 
     // 渲染函数
@@ -438,10 +461,28 @@
       key: "get",
       value: function get() {
         // 在渲染开始之前，把 watcher 挂载到全局，也就是 Dep 类上（静态属性）
-        Dep.target = this;
-        this.getter();
-        // 渲染结束，把全局的 watcher 卸载
-        Dep.target = null;
+        pushTarget(this);
+        var value = this.getter.call(this.vm);
+        // 渲染结束，把当前的 watcher 出栈
+        popTarget();
+        return value;
+      }
+
+      // 计算属性求值
+    }, {
+      key: "evaluate",
+      value: function evaluate() {
+        // 获取到用户定义的 get 方法的返回值
+        this.value = this.get();
+        this.dirty = false;
+      }
+      // 计算属性用，让每一个计算属性
+    }, {
+      key: "depend",
+      value: function depend() {
+        for (var i = this.deps.length - 1; i >= 0; i--) {
+          this.deps[i].depend(this);
+        }
       }
 
       // 给 watch 添加 dep
@@ -463,9 +504,13 @@
     }, {
       key: "update",
       value: function update() {
-        // 把当前的 watcher 暂存在队列中
-        queueWatcher(this);
-        // this.get()
+        // 如果是计算属性依赖的值发生变化，标志脏值，下次取值会重新计算
+        if (this.lazy) {
+          this.dirty = true;
+        } else {
+          // 把当前的 watcher 暂存在队列中
+          queueWatcher(this);
+        }
       }
 
       // 执行渲染逻辑
@@ -656,7 +701,6 @@
 
       // 创建真实 dom
       var newElm = createElm(newVnode);
-      console.log(newElm);
 
       // 先把新 DOM 插入到老DOM的后面，然后再删除老DOM，这样可以保证新DOM替换了老DOM
       parentElm.insertBefore(newElm, elm.nextSibling);
@@ -711,13 +755,11 @@
     var updateComponent = function updateComponent() {
       // 1. 调用 render 方法，获得虚拟 DOM
       var vnode = vm._render();
-      console.log(vnode);
 
       // 2. 根据虚拟 DOM，生成真实 DOM
       vm._update(vnode);
     };
-    var w = new Watcher(vm, updateComponent, true);
-    console.log(w);
+    new Watcher(vm, updateComponent, true);
   }
 
   // 重写数组中可以改变数组的7个方法，并返回重写后的原型对象
@@ -855,7 +897,6 @@
       },
       // 修改属性的时候，触发set
       set: function set(newValue) {
-        console.log('set', newValue);
         if (newValue === value) return;
         // 修改之后重新劫持，因为如果用户将值修改为对象，那么要对这个对象进行深度劫持
         observe(newValue);
@@ -875,6 +916,10 @@
     // 是否传入data
     if (opts.data) {
       initData(vm);
+    }
+    // 是否使用计算属性
+    if (opts.computed) {
+      initComputed(vm);
     }
   }
 
@@ -912,6 +957,61 @@
     for (var key in data) {
       proxy(vm, '_data', key);
     }
+  }
+  function initComputed(vm) {
+    var computed = vm.$options.computed;
+    var wacthers = vm._computedWatchers = {}; // 存储所有计算属性的 watcher，并保存到 vm 上
+    // computed 中书写的可能是对象，也可能是函数
+    for (var key in computed) {
+      var userDef = computed[key];
+      var fn = typeof userDef === 'function' ? userDef : userDef.get;
+      // 为每一个计算属性创建一个 watcher，每次调用 watcher 时，执行 get 方法获取最新值
+      wacthers[key] = new Watcher(vm, fn, {
+        lazy: true
+      }); // new Watcher 默认会执行一次 fn，但 computed 默认是不初始化的，所以加入 lazy 配置项
+
+      // 把 computed 中定义的变量挂载到 vm 上去
+      defineComputed(vm, key, userDef);
+    }
+  }
+
+  /**
+   * 将 computed 中的属性挂载到 vm 上
+   * @param {Object} target vm
+   * @param {string} key 要挂载的属性
+   * @param {Object} userDef 用户传入的计算属性对象
+   */
+  function defineComputed(target, key, userDef) {
+    typeof userDef === 'function' ? userDef : userDef.get;
+    var setter = userDef.set || function () {};
+    Object.defineProperty(target, key, {
+      get: createComputedGetter(key),
+      set: setter
+    });
+  }
+
+  /**
+   * 加入了缓存（脏值监测）的get方法
+   * @param {string} key 计算属性变量名
+   * @returns 加入了脏值监测机制的 get 方法
+   */
+  function createComputedGetter(key) {
+    return function () {
+      // 获取到对应计算属性的watcher
+      var watcher = this._computedWatchers[key];
+      // 如果是脏值，那么重新执行用户定义的 get 方法，进行计算
+      if (watcher.dirty) {
+        // 是脏值
+        watcher.evaluate();
+      }
+      if (Dep.target) {
+        // 计算属性 watcher 出栈之后，如果还栈中还存在 watcher ，那么继续收集上层 watcher
+        // 要让计算属性中的 watcher 所对应的响应式数据，也去收集渲染 watcher。换句话说就是，收集了计算属性 watcher 的数据，也必须收集当前的渲染 watcher，
+        // 这样才能实现数据变化，页面自动重新渲染
+        watcher.depend();
+      }
+      return watcher.value;
+    };
   }
 
   /**
@@ -959,7 +1059,6 @@
         }
       }
       // 如果有模版，则编译成render；反之如果有render，则不必编译。模版和render函数最终都会被统一成render函数
-      // console.log(opts.render);
 
       mountComponent(vm, el); //得到了render 函数之后，执行组件的挂载
     };

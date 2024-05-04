@@ -26,4 +26,24 @@ class Dep {
 
 Dep.target = null
 
+
+let stack = []
+
+/**
+ * watcher 入栈
+ * @param {Object} this watcher 
+ */
+export function pushTarget(watcher) {
+    stack.push(watcher)
+    Dep.target = watcher // 全局记录
+}
+
+/**
+ * watcher 出栈
+ * @param {Object} this watcher 
+ */
+export function popTarget() {
+    stack.pop()
+    Dep.target = stack[stack.length - 1]
+}
 export default Dep
