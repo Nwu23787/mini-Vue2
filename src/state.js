@@ -55,6 +55,10 @@ function initData(vm) {
     }
 }
 
+/**
+ * 初始化处理 computed 选项
+ * @param {*} vm Vue实例
+ */
 function initComputed(vm) {
     const computed = vm.$options.computed
     const wacthers = vm._computedWatchers = {} // 存储所有计算属性的 watcher，并保存到 vm 上

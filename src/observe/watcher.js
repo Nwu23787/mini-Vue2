@@ -25,7 +25,7 @@ class Watcher {
         this.vm = vm
     }
 
-    // 渲染函数
+    // 执行传入的回调函数
     get() {
         // 在渲染开始之前，把 watcher 挂载到全局，也就是 Dep 类上（静态属性）
         pushTarget(this)
@@ -41,7 +41,7 @@ class Watcher {
         this.value = this.get()
         this.dirty = false
     }
-    // 计算属性用，让每一个计算属性
+    // 计算属性用，让每一个计算属性的依赖收集上层 watcher
     depend() {
         for (let i = this.deps.length - 1; i >= 0; i--) {
             this.deps[i].depend(this)

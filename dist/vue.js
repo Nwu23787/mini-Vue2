@@ -456,7 +456,7 @@
       this.vm = vm;
     }
 
-    // 渲染函数
+    // 执行传入的回调函数
     return _createClass(Watcher, [{
       key: "get",
       value: function get() {
@@ -476,7 +476,7 @@
         this.value = this.get();
         this.dirty = false;
       }
-      // 计算属性用，让每一个计算属性
+      // 计算属性用，让每一个计算属性的依赖收集上层 watcher
     }, {
       key: "depend",
       value: function depend() {
@@ -958,6 +958,11 @@
       proxy(vm, '_data', key);
     }
   }
+
+  /**
+   * 初始化处理 computed 选项
+   * @param {*} vm Vue实例
+   */
   function initComputed(vm) {
     var computed = vm.$options.computed;
     var wacthers = vm._computedWatchers = {}; // 存储所有计算属性的 watcher，并保存到 vm 上
