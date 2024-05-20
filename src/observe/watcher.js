@@ -4,11 +4,21 @@ let id = 0;
 
 class Watcher {
     // vm watcher 对应的组件的实例，fn 组件对应的渲染函数
-    constructor(vm, fn, options) {
+    constructor(vm, exprOrFn, options, cb) {
         // 使用 id 来区分不同组件的 watcher
         this.id = id++
-        // 把渲染函数绑定watcher到实例上，调用getter即可重新渲染，更新视图
-        this.getter = fn
+
+        if (typeof exprOrFn === 'string') {
+            // exprOrFn 若为字符串，改成函数
+            this.getter = function () {
+                return vm[exprOrFn]
+            }
+        } else {
+            // 把渲染函数绑定watcher到实例上，调用getter即可重新渲染，更新视图
+            this.getter = exprOrFn
+        }
+
+
         // 标记是否是一个渲染watcher
         this.renderWatcher = options
         // 收集 watcher 对应的 dep
@@ -20,9 +30,13 @@ class Watcher {
         //计算属性的缓存值
         this.dirty = this.lazy
         // 初始化调用
-        this.lazy ? undefined : this.get()
+        this.value = this.lazy ? undefined : this.get()
         // 记录 vm
         this.vm = vm
+        // 记录回调
+        this.cb = cb
+        // 判断是不是用户自己创建的 watcher，也就是 watch 对应的 watcher
+        this.user = options.user
     }
 
     // 执行传入的回调函数
@@ -74,7 +88,11 @@ class Watcher {
 
     // 执行渲染逻辑
     run() {
-        this.get()
+        let oldValue = this.value
+        let newValue = this.get()
+        if (this.user) {
+            this.cb.call(this.vm, oldValue, newValue)
+        }
     }
 
 }

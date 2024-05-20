@@ -1,6 +1,6 @@
 import Dep from "./observe/dep"
 import { observe } from "./observe/index"
-import Watcher from "./observe/watcher"
+import Watcher, { nextTick } from "./observe/watcher"
 
 /**
  * 初始化状态，分发init
@@ -16,6 +16,47 @@ export function initState(vm) {
     if (opts.computed) {
         initComputed(vm)
     }
+    // 初始化 watch
+    if (opts.watch) {
+        initWatch(vm)
+    }
+}
+
+/**
+ * 初始化 watch 选项
+ * @param {*} vm Vue实例
+ */
+function initWatch(vm) {
+    let watch = vm.$options.watch
+
+    // 取出 watch 中的每一个属性
+    for (let key in watch) {
+        const handler = watch[key] // 可能是数组、字符串、函数
+        if (Array.isArray(handler)) {
+            //如果是数组，则循环创建 watcher
+            for (let i = 0; i < handler.length; i++) {
+                createWatcher(vm, key, handler[i])
+            }
+        } else {
+            createWatcher(vm, key, handler)
+        }
+    }
+}
+
+/**
+ * 
+ * @param {*} vm Vue 实例
+ * @param {*} key 监听的属性
+ * @param {*} handler 属性变化执行的回调
+ * @returns 
+ */
+function createWatcher(vm, key, handler) {
+    // 可能是字符串、函数
+    if (typeof handler == 'string') {
+        handler = vm[handler]
+    }
+
+    return vm.$watch(key, handler)
 }
 
 /**
@@ -112,5 +153,19 @@ function createComputedGetter(key) {
             watcher.depend()
         }
         return watcher.value
+    }
+}
+
+
+export function initStateMixin(Vue) {
+    Vue.prototype.$nextTick = nextTick
+    /**
+     * $watch API
+     * @param {string | function} exprOrFn 字符串或者函数
+     * @param {Function} cb watch的回调函数
+     */
+    Vue.prototype.$watch = function (exprOrFn, cb) {
+        // exprOrFn 变化直接执行 cd 回调
+        new Watcher(this, exprOrFn, { user: true }, cb)
     }
 }

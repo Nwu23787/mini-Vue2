@@ -434,12 +434,20 @@
   var id = 0;
   var Watcher = /*#__PURE__*/function () {
     // vm watcher 对应的组件的实例，fn 组件对应的渲染函数
-    function Watcher(vm, fn, options) {
+    function Watcher(vm, exprOrFn, options, cb) {
       _classCallCheck(this, Watcher);
       // 使用 id 来区分不同组件的 watcher
       this.id = id++;
-      // 把渲染函数绑定watcher到实例上，调用getter即可重新渲染，更新视图
-      this.getter = fn;
+      if (typeof exprOrFn === 'string') {
+        // exprOrFn 若为字符串，改成函数
+        this.getter = function () {
+          return vm[exprOrFn];
+        };
+      } else {
+        // 把渲染函数绑定watcher到实例上，调用getter即可重新渲染，更新视图
+        this.getter = exprOrFn;
+      }
+
       // 标记是否是一个渲染watcher
       this.renderWatcher = options;
       // 收集 watcher 对应的 dep
@@ -451,9 +459,13 @@
       //计算属性的缓存值
       this.dirty = this.lazy;
       // 初始化调用
-      this.lazy ? undefined : this.get();
+      this.value = this.lazy ? undefined : this.get();
       // 记录 vm
       this.vm = vm;
+      // 记录回调
+      this.cb = cb;
+      // 判断是不是用户自己创建的 watcher，也就是 watch 对应的 watcher
+      this.user = options.user;
     }
 
     // 执行传入的回调函数
@@ -517,7 +529,11 @@
     }, {
       key: "run",
       value: function run() {
-        this.get();
+        var oldValue = this.value;
+        var newValue = this.get();
+        if (this.user) {
+          this.cb.call(this.vm, oldValue, newValue);
+        }
       }
     }]);
   }(); // 缓存 watcher 队列
@@ -650,11 +666,11 @@
     if (typeof tag === 'string') {
       // 传入的是标签，文本节点的tag为undefined
       // 创建元素
-      // ！！！把真实 DOM 挂载到 虚拟DOM 上！便于后续更新，比如修改了属性，就可以直接找到真实的dom进行更新
+      // ！！！把真实 DOM 挂载到 虚拟DOM 上！便于后续更新，比如修改了属性，就可以直接找到真实的dom进行更新，挂载在 el 属性上
       vnode.el = document.createElement(tag);
 
       // 更新元素属性
-      patchProps(vnode.el, data);
+      patchProps(vnode.el, {}, data);
 
       // 创建子DOM
       children.forEach(function (item) {
@@ -668,15 +684,35 @@
   }
 
   // 处理属性
-  function patchProps(el, props) {
-    for (var key in props) {
+  function patchProps(el, oldProps, props) {
+    var oldStyles = oldProps.style || {};
+    var newStyles = props.style || {};
+
+    // 循环旧的style样式，看看新的样式中是否还存在这个样式
+    for (var key in oldStyles) {
+      // 新的vnode中没有这个样式了，从el上删除这个样式
+      if (!newStyles[key]) {
+        el.style[key] = '';
+      }
+    }
+
+    // 循环旧的属性,查看新的属性中是否还存在这个属性
+    for (var _key in oldProps) {
+      if (!props[_key]) {
+        // 新的vnode中没有这个属性，从el上删除这个属性
+        el.removeAttribute(_key);
+      }
+    }
+
+    // 用新的覆盖掉老的，上面两步处理是为了防止旧的属性中有需要删除的属性，而新的属性中没有
+    for (var _key2 in props) {
       // 单独处理style
-      if (key === 'style') {
+      if (_key2 === 'style') {
         for (var styleName in props.style) {
           el.style[styleName] = props.style[styleName];
         }
       } else {
-        el.setAttribute(key, props[key]);
+        el.setAttribute(_key2, props[_key2]);
       }
     }
   }
@@ -708,8 +744,92 @@
       // oldVnode = newElm;
 
       // return newElm
+    } else {
+      patchVnode(oldVnode, newVnode);
     }
   }
+
+  /**
+   * 判断两个虚拟节点是不是同一个（标签名和key相同就是同一个）
+   * @param {*} vnode1 虚拟节点1
+   * @param {*} vnode2 虚拟节点2
+   * @returns 
+   */
+  function isSameVnode(vnode1, vnode2) {
+    return vnode1.tag === vnode2.tag && vnode1.key === vnode2.key;
+  }
+
+  /**
+   * 对比两个虚拟节点，并做相应的处理
+   * @returns 真实dom
+   */
+  function patchVnode(oldVnode, newVnode) {
+    // 进行 diff 算法，更新
+    console.log(oldVnode, newVnode);
+    if (!isSameVnode(oldVnode, newVnode)) {
+      // 1. 外层节点不同，直接替换，不用比对了
+      var _el = createElm(newVnode);
+      oldVnode.el.parentNode.replaceChild(_el, oldVnode.el);
+      return _el;
+    }
+    var el = newVnode.el = oldVnode.el; // 复用老节点的元素
+
+    // 如果是文本,比较文本的内容(文本的tag都是undefined)
+    if (!oldVnode.tag) {
+      if (oldVnode.text !== newVnode.text) {
+        el.textContent = newVnode.textContent;
+      }
+    }
+
+    // 2. 两个节点相同（节点的 tag 和 key 相同），对比节点属性是否相同。没写 key 那 key 的值就是 undefined，也是一样的。（复用老节点，更新差异属性）
+    patchProps(el, oldVnode.data, newVnode.data);
+
+    // 3. 外层节点比对完成，比较他们的子节点
+    var oldChildren = oldVnode.children || [];
+    var newChildren = newVnode.children || [];
+
+    // 有一边无子节点
+    if (oldChildren.length > 0 && newChildren.length > 0) {
+      // 完整的 diff，继续比较子节点
+      updateChlidren(el, oldChildren, newChildren);
+    } else if (newChildren.length > 0) {
+      // 新的 vnode 有子节点，旧的没有，直接插入新的子节点
+      mountChildren(el, newChildren);
+    } else if (oldChildren.length > 0) {
+      // 新的 vnode 没有子节点，旧的有，要删除旧的子节点
+      unmountChildren(el);
+    }
+    return el;
+  }
+
+  /**
+   * 生成新的真实子节点，并将新的子节点挂载到原来的真实父DOM下
+   * @param {object} el 挂载点，真实dom
+   * @param {Array} newChildren 新的子节点，Vnode
+   */
+  function mountChildren(el, newChildren) {
+    for (var i = 0; i < newChildren.length; i++) {
+      var child = newChildren[i];
+      el.appendChild(createElm(child));
+    }
+  }
+
+  /**
+   * 删除真实DOM的所有子节点
+   * @param {object} el 真实DOM
+   */
+  function unmountChildren(el) {
+    el.innerHTML = '';
+  }
+  function updateChlidren(el, oldChildren, newChildren) {
+    var oldEndIndex = oldChildren.length - 1;
+    var newEndIndex = newChildren.length - 1;
+    oldChildren[0];
+    newChildren[0];
+    oldChildren[oldEndIndex];
+    newChildren[newEndIndex];
+  }
+
   function initLifeCycle(Vue) {
     // 生成 Vnode 节点
     Vue.prototype._c = function () {
@@ -921,6 +1041,46 @@
     if (opts.computed) {
       initComputed(vm);
     }
+    // 初始化 watch
+    if (opts.watch) {
+      initWatch(vm);
+    }
+  }
+
+  /**
+   * 初始化 watch 选项
+   * @param {*} vm Vue实例
+   */
+  function initWatch(vm) {
+    var watch = vm.$options.watch;
+
+    // 取出 watch 中的每一个属性
+    for (var key in watch) {
+      var handler = watch[key]; // 可能是数组、字符串、函数
+      if (Array.isArray(handler)) {
+        //如果是数组，则循环创建 watcher
+        for (var i = 0; i < handler.length; i++) {
+          createWatcher(vm, key, handler[i]);
+        }
+      } else {
+        createWatcher(vm, key, handler);
+      }
+    }
+  }
+
+  /**
+   * 
+   * @param {*} vm Vue 实例
+   * @param {*} key 监听的属性
+   * @param {*} handler 属性变化执行的回调
+   * @returns 
+   */
+  function createWatcher(vm, key, handler) {
+    // 可能是字符串、函数
+    if (typeof handler == 'string') {
+      handler = vm[handler];
+    }
+    return vm.$watch(key, handler);
   }
 
   /**
@@ -1018,6 +1178,20 @@
       return watcher.value;
     };
   }
+  function initStateMixin(Vue) {
+    Vue.prototype.$nextTick = nextTick;
+    /**
+     * $watch API
+     * @param {string | function} exprOrFn 字符串或者函数
+     * @param {Function} cb watch的回调函数
+     */
+    Vue.prototype.$watch = function (exprOrFn, cb) {
+      // exprOrFn 变化直接执行 cd 回调
+      new Watcher(this, exprOrFn, {
+        user: true
+      }, cb);
+    };
+  }
 
   /**
    * 定义 _init 初始化 Vue 方法，并将其挂载到 Vue 实例的原型上，供 Vue 实例调用
@@ -1076,7 +1250,33 @@
   }
   initMixin(Vue); //将 _init 方法添加到 Vue 实例原型上，供 Vue 实例调用
   initLifeCycle(Vue);
-  Vue.prototype.$nextTick = nextTick;
+  initStateMixin(Vue);
+
+  // 测试用代码
+  var render1 = compileToFunction("<ul key=\"a\" style=\"color:red\">\n    <li key=\"a\">a</li>\n    <li key=\"b\">b</li>\n    <li key=\"c\">c</li>\n</ul>");
+  var render2 = compileToFunction("<ul key=\"a\" style=\"color:black;background:yellow\">\n    <li key=\"a\">a</li>\n    <li key=\"b\">b</li>\n    <li key=\"c\">c</li>\n    <li key=\"d\">d</li>\n</ul>");
+  var vm1 = new Vue({
+    data: {
+      name: 'zs'
+    }
+  });
+  var preVnode = render1.call(vm1);
+  // console.log(preVnode);
+
+  var el = createElm(preVnode);
+  document.body.appendChild(el);
+  var vm2 = new Vue({
+    data: {
+      name: '666'
+    }
+  });
+  var nextVnode = render2.call(vm2);
+  // console.log(nextVnode);
+  createElm(nextVnode);
+  setTimeout(function () {
+    patch(preVnode, nextVnode);
+    // el.parentNode.replaceChild(newEl, el)
+  }, 1000);
 
   return Vue;
 

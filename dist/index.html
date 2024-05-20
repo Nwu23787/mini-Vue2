@@ -9,7 +9,7 @@
 
 <body>
   <div id="app">
-    {{fullName}} {{fullName}} {{fullName}}
+    {{lastName}} {{a}}
   </div>
   <script src="vue.js"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
@@ -17,27 +17,35 @@
     const vm = new Vue({
       data: {
         firstName: '张',
-        lastName: '劲奇'
+        lastName: '劲奇',
+        a:1
       },
+      // methods: {
+      //   fn(newValue, oldValue) {
+      //     console.log(newValue, oldValue);
+      //   }
+      // },
       el: '#app',
-      computed: {
-        // fullName() {
-        //   return this.firstName + this.lastName
-        // }
-        fullName: {
-          get() {
-            return this.firstName + this.lastName
-          },
-          set() {
-            console.log(123);
+      watch: {
+        firstName: [
+          (newValue, oldValue) => {
+            this.lastName = 1234
+            console.log(this.lastName);
           }
-        }
+        ]
       }
     })
+    // 底层调用的都是 $watch
+    // vm.$watch(() => vm.firstName, (newValue, oldValue) => {
+    //   this.lastName = 1234
+    //   console.log(this.lastName);
+    // })
+    // setTimeout(() => {
+    //   vm.firstName = 1232
 
-    setTimeout(() => {
-      vm.firstName = 1232
-    }, 1000);
+    //   vm.a =99
+      
+    // }, 1000);
   </script>
 </body>
 
