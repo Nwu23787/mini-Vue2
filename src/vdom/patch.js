@@ -23,7 +23,7 @@ export function createElm(vnode) {
 }
 
 // 处理属性
-export function patchProps(el, oldProps, props) {
+export function patchProps(el, oldProps = {}, props = {}) {
     let oldStyles = oldProps.style || {}
     let newStyles = props.style || {}
 
@@ -110,7 +110,7 @@ export function isSameVnode(vnode1, vnode2) {
  */
 function patchVnode(oldVnode, newVnode) {
     // 进行 diff 算法，更新
-    console.log(oldVnode, newVnode);
+    // console.log(oldVnode, newVnode);
 
     if (!isSameVnode(oldVnode, newVnode)) {
         // 1. 外层节点不同，直接替换，不用比对了
@@ -187,7 +187,48 @@ function updateChlidren(el, oldChildren, newChildren) {
     let newEndVnode = newChildren[newEndIndex]
 
     // 循环比较
-    while(oldStartIndex <= oldEndIndex || newStartIndex <= newEndIndex){
+    while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+        // console.log(oldStartVnode,newStartVnode);
+
+        // 头头比较
+        if (isSameVnode(oldStartVnode, newStartVnode)) {
+            patchVnode(oldStartVnode, newStartVnode) // 是相同的节点，就递归比较子节点
+            // 指针向中间移动
+            oldStartVnode = oldChildren[++oldStartIndex]
+            newStartVnode = newChildren[++newStartIndex]
+        }
+
+        // 尾尾比较
+        if (isSameVnode(oldEndVnode, newEndVnode)) {
+            patch(oldEndVnode, newEndVnode)
+            oldEndVnode = oldChildren[--oldEndIndex]
+            newEndVnode = newChildren[--newEndIndex]
+        }
+
+        // 交叉比对
+    }
+
+    // 循环完之后，如果还剩节点，则直接插入或删除
+    // 新 vnode 有剩余，直接追加
+    if (newStartIndex <= newEndIndex) {
+        for (let i = newStartIndex; i <= newEndIndex; i++) {
+            let childEl = createElm(newChildren[i])
+            // 可能向前追加，也可能向后追加
+            // el.appendChild(childEl)
+            let anchor = newChildren[newEndIndex + 1] ? newChildren[newEndIndex + 1].el : null// 如果尾指针后面有元素，那么就向这个元素前面追加
+
+            // !!! anchor 为 null 的时候会认为是 appendChild
+            el.insertBefore(childEl, anchor)
+        }
+    }
+
+    // 旧vnode有剩余需要删除
+    if (oldStartIndex <= oldEndIndex) {
+        for (let i = oldStartIndex; i <= oldEndIndex; i++) {
+            // 删除老的节点
+            let childEl = oldChildren[i].el
+            el.removeChild(childEl)
+        }
 
     }
 }

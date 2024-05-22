@@ -17,16 +17,16 @@ initStateMixin(Vue)
 
 
 // 测试用代码
-let render1 = compileToFunction(`<ul key="a" style="color:red">
+let render1 = compileToFunction(`<ul key="a">
     <li key="a">a</li>
     <li key="b">b</li>
     <li key="c">c</li>
 </ul>`)
-let render2 = compileToFunction(`<ul key="a" style="color:black;background:yellow">
+let render2 = compileToFunction(`<ul key="a">
+    <li key="d">d</li>
     <li key="a">a</li>
     <li key="b">b</li>
     <li key="c">c</li>
-    <li key="d">d</li>
 </ul>`)
 let vm1 = new Vue({
     data: {
