@@ -29,10 +29,23 @@ export function initLifeCycle(Vue) {
 
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
+        const vm = this
         this.$el = document.getElementById('app')
         const el = this.$el
+
+        const preVnode = vm._vnode
+
+        if (preVnode) {
+            // 之前渲染过，传递上一次的vnode
+            vm.$el = patch(preVnode, vnode)
+        } else {
+            //第一次渲染
+            vm.$el = patch(el, vnode)
+        }
+
+        vm._vnode = vnode // 将组件第一次产生的vnode保存到实例上
         // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
-        return patch(el, vnode) // patch 更新 或者 初始化渲染 方法
+        // return vm.$el = patch(el, vnode) // patch 更新 或者 初始化渲染 方法
     }
 
 }
@@ -57,4 +70,18 @@ export function mountComponent(vm, el) {
     }
     const w = new Watcher(vm, updateComponent, true)
 
+}
+
+/**
+ * 调用并执行vm上的钩子方法
+ * @param {Object} vm Vue实例
+ * @param {Array} hook vm的钩子方法
+ */
+export function callHook(vm, hook) {
+    const handlers = vm.$options[hook]
+    if (handlers) {
+        handlers.forEach(fn => {
+            fn.call(vm)
+        });
+    }
 }

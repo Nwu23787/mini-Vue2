@@ -376,6 +376,64 @@
     return render;
   }
 
+  // 合并策略
+  var strats = {};
+  var LIFECYCLE = ['beforeCreated', 'created', 'beforeMounted', 'mounted', 'beforeUpdate', 'update', 'beforeDestroy', 'destroyed'];
+  LIFECYCLE.forEach(function (hook) {
+    strats[hook] = function (parent, child) {
+      // hook 的合并策略
+      if (child) {
+        if (parent) {
+          // 新旧都有，合并，拼接在一起
+          return parent.concat(child);
+        } else {
+          // 旧的里面没有，将传入的新的包装成数组
+          return [child];
+        }
+      } else {
+        // 新的没有，不用合并
+        return p;
+      }
+    };
+  });
+
+  // 合并两个对象，合并mixin时用到
+  function mergeOptions(parent, child) {
+    var options = {};
+
+    // 合并老的，其实就是将{create:fn()} => {create:[fn]}，数组化
+    for (var key in parent) {
+      mergeField(key);
+    }
+    for (var _key in child) {
+      if (!parent.hasOwnProperty(_key)) {
+        // 不合并已经合并过的属性
+        mergeField(_key);
+      }
+    }
+
+    // 合并options，优先后传入的mixin
+    function mergeField(key) {
+      if (strats[key]) {
+        // 有相应的策略，按照策略合并
+        options[key] = strats[key](parent[key], child[key]);
+      } else {
+        // 策略模式，针对不同的属性采取不同的合并策略
+        options[key] = child[key] || parent[key];
+      }
+    }
+    return options;
+  }
+
+  function initGlobalAPI(Vue) {
+    Vue.options = {};
+    Vue.mixin = function (mixin) {
+      // 合并原有的钩子和传进来的钩子
+      this.options = mergeOptions(this.options, mixin);
+      return this;
+    };
+  }
+
   var id$1 = 0;
   var Dep = /*#__PURE__*/function () {
     function Dep() {
@@ -747,7 +805,7 @@
 
       // return newElm
     } else {
-      patchVnode(oldVnode, newVnode);
+      return patchVnode(oldVnode, newVnode);
     }
   }
 
@@ -758,13 +816,14 @@
    * @returns 
    */
   function isSameVnode(vnode1, vnode2) {
-    return vnode1.tag === vnode2.tag && vnode1.key === vnode2.key;
+    // if(!vnode1 && vnode2) return false
+    return (vnode1 === null || vnode1 === void 0 ? void 0 : vnode1.tag) === (vnode2 === null || vnode2 === void 0 ? void 0 : vnode2.tag) && (vnode1 === null || vnode1 === void 0 ? void 0 : vnode1.key) === (vnode2 === null || vnode2 === void 0 ? void 0 : vnode2.key);
   }
 
   /**
    * 对比两个虚拟节点，并做相应的处理
-   * @returns 真实dom
-   */
+      * @returns 真实dom
+      */
   function patchVnode(oldVnode, newVnode) {
     // 进行 diff 算法，更新
     // console.log(oldVnode, newVnode);
@@ -780,7 +839,8 @@
     // 如果是文本,比较文本的内容(文本的tag都是undefined)
     if (!oldVnode.tag) {
       if (oldVnode.text !== newVnode.text) {
-        el.textContent = newVnode.textContent;
+        // bug 修复 newVnode.textContent -> newVnode.text
+        el.textContent = newVnode.text;
       }
     }
 
@@ -825,6 +885,8 @@
     el.innerHTML = '';
   }
   function updateChlidren(el, oldChildren, newChildren) {
+    console.log(oldChildren, newChildren);
+
     // 双指针比较
     var oldStartIndex = 0;
     var newStartIndex = 0;
@@ -835,26 +897,77 @@
     var oldEndVnode = oldChildren[oldEndIndex];
     var newEndVnode = newChildren[newEndIndex];
 
+    /**
+     * 构造虚拟dom的映射表，key为vnode的key，value为vnode在数组中的索引
+     * @param {Array} children 虚拟子节点数组
+     * @returns {Object}    映射表
+     */
+    function makeIndexByKey(children) {
+      var map = {};
+      children.forEach(function (child, index) {
+        map[child.key] = index;
+      });
+      return map;
+    }
+
+    // 构造映射表
+    var map = makeIndexByKey(oldChildren);
+    console.log(map);
+
     // 循环比较
     while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
       // console.log(oldStartVnode,newStartVnode);
+      // debugger
 
-      // 头头比较
-      if (isSameVnode(oldStartVnode, newStartVnode)) {
+      if (!oldStartVnode) {
+        oldStartVnode = oldChildren[++oldStartIndex];
+      } else if (!oldEndVnode) {
+        oldEndVnode = oldChildren[--oldEndIndex];
+      } else if (isSameVnode(oldStartVnode, newStartVnode)) {
+        // 头头比较
         patchVnode(oldStartVnode, newStartVnode); // 是相同的节点，就递归比较子节点
         // 指针向中间移动
         oldStartVnode = oldChildren[++oldStartIndex];
         newStartVnode = newChildren[++newStartIndex];
-      }
+      } else if (isSameVnode(oldEndVnode, newEndVnode)) {
+        // 尾尾比较
 
-      // 尾尾比较
-      if (isSameVnode(oldEndVnode, newEndVnode)) {
-        patch(oldEndVnode, newEndVnode);
+        patchVnode(oldEndVnode, newEndVnode);
         oldEndVnode = oldChildren[--oldEndIndex];
         newEndVnode = newChildren[--newEndIndex];
-      }
+      } else if (isSameVnode(oldEndVnode, newStartVnode)) {
+        // 交叉比对  头尾比对，类似abcd->dabc
+        patchVnode(oldEndVnode, newStartVnode);
+        el.insertBefore(oldEndVnode.el, oldStartVnode.el);
+        oldEndVnode = oldChildren[--oldEndIndex];
+        newStartVnode = newChildren[++newStartIndex];
+      } else if (isSameVnode(oldStartVnode, newEndVnode)) {
+        // 尾头比对
+        patchVnode(oldStartVnode, newEndVnode);
+        el.insertBefore(oldStartVnode.el, oldEndVnode.el.nextSibling);
+        oldStartVnode = oldChildren[++oldStartIndex];
+        newEndVnode = newChildren[--newEndIndex];
+      } else {
+        // 乱序，通过映射表查找
+        // 通过新vnode的key去查找，如果发现key相同，则说明匹配成功，需要复用，取得需要复用节点在原oldChildren数组中的下标
+        var moveIndex = map[newStartVnode.key];
+        if (moveIndex !== undefined) {
+          var moveVnode = oldChildren[moveIndex];
 
-      // 交叉比对
+          // 移动老节点到合适的位置（开始指针的位置）
+          el.insertBefore(moveVnode.el, oldStartVnode.el);
+
+          // 将节点置空
+          oldChildren[moveIndex] = undefined;
+
+          // 比较子节点
+          patchVnode(moveVnode, newStartVnode);
+        } else {
+          // 在旧vnode中找不到匹配节点，直接创建新的dom然后插入
+          el.insertBefore(createElm(newStartVnode), oldStartVnode.el);
+        }
+        newStartVnode = newChildren[++newStartIndex];
+      }
     }
 
     // 循环完之后，如果还剩节点，则直接插入或删除
@@ -874,6 +987,8 @@
     // 旧vnode有剩余需要删除
     if (oldStartIndex <= oldEndIndex) {
       for (var _i = oldStartIndex; _i <= oldEndIndex; _i++) {
+        // 处理空节点 undefined
+        if (!oldChildren[_i]) continue;
         // 删除老的节点
         var _childEl = oldChildren[_i].el;
         el.removeChild(_childEl);
@@ -907,10 +1022,20 @@
 
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
+      var vm = this;
       this.$el = document.getElementById('app');
       var el = this.$el;
+      var preVnode = vm._vnode;
+      if (preVnode) {
+        // 之前渲染过，传递上一次的vnode
+        vm.$el = patch(preVnode, vnode);
+      } else {
+        //第一次渲染
+        vm.$el = patch(el, vnode);
+      }
+      vm._vnode = vnode; // 将组件第一次产生的vnode保存到实例上
       // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
-      return patch(el, vnode); // patch 更新 或者 初始化渲染 方法
+      // return vm.$el = patch(el, vnode) // patch 更新 或者 初始化渲染 方法
     };
   }
   function mountComponent(vm, el) {
@@ -931,6 +1056,20 @@
       vm._update(vnode);
     };
     new Watcher(vm, updateComponent, true);
+  }
+
+  /**
+   * 调用并执行vm上的钩子方法
+   * @param {Object} vm Vue实例
+   * @param {Array} hook vm的钩子方法
+   */
+  function callHook(vm, hook) {
+    var handlers = vm.$options[hook];
+    if (handlers) {
+      handlers.forEach(function (fn) {
+        fn.call(vm);
+      });
+    }
   }
 
   // 重写数组中可以改变数组的7个方法，并返回重写后的原型对象
@@ -1254,10 +1393,16 @@
       // this 就是 Vue 实例，经常写 this 太烦，又容易混淆 this，取别名
       var vm = this;
       // 将用户选项挂载到 Vue 实例上，便于其他地方使用
-      vm.$options = options;
+      vm.$options = mergeOptions(this.constructor.options, options); // mergeOPtions，合并当前传入的options和Vue的全局options（也就是我们混入的mixin的options）
+
+      // beforeCreated 生命周期
+      callHook(vm, 'beforeCreated');
 
       // 初始化状态（data、computed、props等等）
       initState(vm);
+
+      // created 生命周期
+      callHook(vm, 'created');
 
       // 挂载数据，也就是将数据解析（或者说挂载）到 el 指定的 dom 上
       if (options.el) {
@@ -1302,32 +1447,7 @@
   initMixin(Vue); //将 _init 方法添加到 Vue 实例原型上，供 Vue 实例调用
   initLifeCycle(Vue);
   initStateMixin(Vue);
-
-  // 测试用代码
-  var render1 = compileToFunction("<ul key=\"a\">\n    <li key=\"a\">a</li>\n    <li key=\"b\">b</li>\n    <li key=\"c\">c</li>\n</ul>");
-  var render2 = compileToFunction("<ul key=\"a\">\n    <li key=\"d\">d</li>\n    <li key=\"a\">a</li>\n    <li key=\"b\">b</li>\n    <li key=\"c\">c</li>\n</ul>");
-  var vm1 = new Vue({
-    data: {
-      name: 'zs'
-    }
-  });
-  var preVnode = render1.call(vm1);
-  // console.log(preVnode);
-
-  var el = createElm(preVnode);
-  document.body.appendChild(el);
-  var vm2 = new Vue({
-    data: {
-      name: '666'
-    }
-  });
-  var nextVnode = render2.call(vm2);
-  // console.log(nextVnode);
-  createElm(nextVnode);
-  setTimeout(function () {
-    patch(preVnode, nextVnode);
-    // el.parentNode.replaceChild(newEl, el)
-  }, 1000);
+  initGlobalAPI(Vue);
 
   return Vue;
 

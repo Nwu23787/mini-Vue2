@@ -9,43 +9,42 @@
 
 <body>
   <div id="app">
-    {{lastName}} {{a}}
+    <span>{{name}}</span>
+    <div id="root"></div>
   </div>
   <script src="vue.js"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
   <script>
-    const vm = new Vue({
-      data: {
-        firstName: '张',
-        lastName: '劲奇',
-        a:1
-      },
-      // methods: {
-      //   fn(newValue, oldValue) {
-      //     console.log(newValue, oldValue);
-      //   }
-      // },
-      el: '#app',
-      watch: {
-        firstName: [
-          (newValue, oldValue) => {
-            this.lastName = 1234
-            console.log(this.lastName);
-          }
-        ]
+    Vue.mixin({
+      created() {
+        console.log(123);
       }
     })
-    // 底层调用的都是 $watch
-    // vm.$watch(() => vm.firstName, (newValue, oldValue) => {
-    //   this.lastName = 1234
-    //   console.log(this.lastName);
-    // })
-    // setTimeout(() => {
-    //   vm.firstName = 1232
 
-    //   vm.a =99
-      
-    // }, 1000);
+    Vue.mixin({
+      created() {
+        console.log(456);
+      }
+    })
+
+
+    const vm = new Vue({
+      el: '#app',
+      data: {
+        name: 'zs',
+        age: 14
+      },
+      created() {
+        console.log(123456);
+      }
+    })
+    console.log(Vue.options);
+
+    // let sub = Vue.extend({
+    //   template: '<button>点击复活科比</button>'
+    // })
+
+    // new sub().$mount('#root')
   </script>
 </body>
 
