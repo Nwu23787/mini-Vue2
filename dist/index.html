@@ -15,17 +15,6 @@
   <script src="vue.js"></script>
   <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
   <script>
-    Vue.mixin({
-      created() {
-        console.log(123);
-      }
-    })
-
-    Vue.mixin({
-      created() {
-        console.log(456);
-      }
-    })
 
 
     const vm = new Vue({
@@ -38,13 +27,17 @@
         console.log(123456);
       }
     })
+
+    setTimeout(() => {
+      vm.name = 12
+    }, 1000);
     console.log(Vue.options);
 
-    // let sub = Vue.extend({
-    //   template: '<button>点击复活科比</button>'
-    // })
+    let Sub = Vue.extend({
+      template:'<button>点击</button>'
+    })
 
-    // new sub().$mount('#root')
+    new Sub().$mount('#root')
   </script>
 </body>
 

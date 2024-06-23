@@ -33,13 +33,14 @@ export function initLifeCycle(Vue) {
         this.$el = document.getElementById('app')
         const el = this.$el
 
+        // 保存上一次渲染的vnode到vm上
         const preVnode = vm._vnode
 
         if (preVnode) {
             // 之前渲染过，传递上一次的vnode
             vm.$el = patch(preVnode, vnode)
         } else {
-            //第一次渲染
+            //第一次渲染，传真实的el
             vm.$el = patch(el, vnode)
         }
 
