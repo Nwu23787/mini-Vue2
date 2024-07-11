@@ -13,7 +13,6 @@ export function initMixin(Vue) {
         // this 就是 Vue 实例，经常写 this 太烦，又容易混淆 this，取别名
         const vm = this
 
-        debugger
         // 将用户选项挂载到 Vue 实例上，便于其他地方使用
         vm.$options = mergeOptions(this.constructor.options, options) // mergeOPtions，合并当前传入的options和Vue的全局options（也就是我们混入的mixin的options）
 

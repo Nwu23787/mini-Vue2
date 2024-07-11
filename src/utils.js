@@ -28,6 +28,20 @@ LIFECYCLE.forEach(hook => {
     }
 });
 
+// 将子组件和父组件建立关系，利用原型链，通过 child 可以找到 parent
+strats.components = function (parent, child) {
+    const res = Object.create(parent)
+
+
+    if (child) {
+        for (let key in child) {
+            res[key] = parent[key]
+        }
+    }
+
+    return res
+}
+
 
 // 合并两个对象，合并mixin时用到
 export function mergeOptions(parent, child) {

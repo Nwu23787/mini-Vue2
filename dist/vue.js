@@ -4,6 +4,28 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  function _arrayLikeToArray(r, a) {
+    (null == a || a > r.length) && (a = r.length);
+    for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+    return n;
+  }
+  function _arrayWithHoles(r) {
+    if (Array.isArray(r)) return r;
+  }
+  function _classCallCheck(a, n) {
+    if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function");
+  }
+  function _defineProperties(e, r) {
+    for (var t = 0; t < r.length; t++) {
+      var o = r[t];
+      o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o);
+    }
+  }
+  function _createClass(e, r, t) {
+    return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", {
+      writable: !1
+    }), e;
+  }
   function _iterableToArrayLimit(r, l) {
     var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
     if (null != t) {
@@ -31,6 +53,12 @@
       return a;
     }
   }
+  function _nonIterableRest() {
+    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+  function _slicedToArray(r, e) {
+    return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+  }
   function _toPrimitive(t, r) {
     if ("object" != typeof t || !t) return t;
     var e = t[Symbol.toPrimitive];
@@ -54,49 +82,12 @@
       return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o;
     }, _typeof(o);
   }
-  function _classCallCheck(instance, Constructor) {
-    if (!(instance instanceof Constructor)) {
-      throw new TypeError("Cannot call a class as a function");
+  function _unsupportedIterableToArray(r, a) {
+    if (r) {
+      if ("string" == typeof r) return _arrayLikeToArray(r, a);
+      var t = {}.toString.call(r).slice(8, -1);
+      return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
     }
-  }
-  function _defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor);
-    }
-  }
-  function _createClass(Constructor, protoProps, staticProps) {
-    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) _defineProperties(Constructor, staticProps);
-    Object.defineProperty(Constructor, "prototype", {
-      writable: false
-    });
-    return Constructor;
-  }
-  function _slicedToArray(arr, i) {
-    return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
-  }
-  function _arrayWithHoles(arr) {
-    if (Array.isArray(arr)) return arr;
-  }
-  function _unsupportedIterableToArray(o, minLen) {
-    if (!o) return;
-    if (typeof o === "string") return _arrayLikeToArray(o, minLen);
-    var n = Object.prototype.toString.call(o).slice(8, -1);
-    if (n === "Object" && o.constructor) n = o.constructor.name;
-    if (n === "Map" || n === "Set") return Array.from(o);
-    if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
-  }
-  function _arrayLikeToArray(arr, len) {
-    if (len == null || len > arr.length) len = arr.length;
-    for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-    return arr2;
-  }
-  function _nonIterableRest() {
-    throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
   var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*";
@@ -397,6 +388,17 @@
     };
   });
 
+  // 将子组件和父组件建立关系，利用原型链，通过 child 可以找到 parent
+  strats.components = function (parent, child) {
+    var res = Object.create(parent);
+    if (child) {
+      for (var key in child) {
+        res[key] = parent[key];
+      }
+    }
+    return res;
+  };
+
   // 合并两个对象，合并mixin时用到
   function mergeOptions(parent, child) {
     var options = {};
@@ -426,14 +428,16 @@
   }
 
   function initGlobalAPI(Vue) {
-    Vue.options = {};
+    Vue.options = {
+      _base: Vue
+    };
     Vue.mixin = function (mixin) {
       // 合并原有的钩子和传进来的钩子
       this.options = mergeOptions(this.options, mixin);
       return this;
     };
 
-    //使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象。手动创造组件
+    //使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象。手动创造组件。返回一个组件的构造函数
     Vue.extend = function (options) {
       // 返回的子类
       function Sub() {
@@ -446,9 +450,17 @@
       Sub.prototype = Object.create(Vue.prototype);
       // create 继承会改变子类的constractor
       Sub.prototype.constructor = Sub;
-      // 保存用户传递的选项
-      Sub.options = options;
+      // 保将用户传递的参数和全局的Vue.options 合并
+      Sub.options = mergeOptions(Vue.options, options);
       return Sub;
+    };
+
+    // 存储全局组件，将组件的构造函数统一挂载到全局上去
+    Vue.options.components = {};
+    Vue.component = function (id, definition) {
+      // definition 可能为对象或者 Vue.extend 函数，需要统一
+      definition = typeof definition === 'function' ? definition : Vue.extend(definition);
+      Vue.options.components[id] = definition;
     };
   }
 
@@ -693,6 +705,11 @@
 
   // 构造 VNode 的相关方法
 
+  // 判断是否为html的原始标签
+  var isReservedTag = function isReservedTag(tag) {
+    return ['a', 'div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'img', 'li', 'ul', 'button', 'b', 'br', 'dt', 'em', 'hr', 'label', 'ol', 'script', 'title', 'var'].includes(tag);
+  };
+
   // 创建元素节点的VNode，即 h()
   function createElement(vm, tag) {
     var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
@@ -702,10 +719,33 @@
     }
     var key = data.key;
     if (key) delete data.key;
+
+    // 如果是html的原生标签
     for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
       children[_key - 3] = arguments[_key];
     }
-    return vnode(vm, tag, key, data, children);
+    if (isReservedTag(tag)) {
+      // 创建原生标签的虚拟节点
+      return vnode(vm, tag, key, data, children);
+    } else {
+      // 这个标签代表的是一个组件，创建组件的虚拟节点
+      var Ctor = vm.$options.components[tag];
+
+      //Ctor可能是组件的Sub类，也可能是组件的templae选项
+      return createComponentVnode(vm, tag, key, data, children, Ctor);
+    }
+  }
+
+  // 创建组件虚拟节点
+  function createComponentVnode(vm, tag, key, data, children, Ctor) {
+    // 判断 Ctor 是不是对象
+    debugger;
+    if (_typeof(Ctor) === 'object') {
+      Ctor = vm.$options._base.extend(Ctor);
+    }
+    return vnode(vm, tag, key, data, children, null, {
+      Ctor: Ctor
+    });
   }
 
   // 创建文本节点的VNode
@@ -714,7 +754,7 @@
   }
 
   // 创建 Vnode  的方法
-  function vnode(vm, tag, key, data, children, text) {
+  function vnode(vm, tag, key, data, children, text, componentOptions) {
     // 返回创建的虚拟 DOM
     return {
       vm: vm,
@@ -722,7 +762,8 @@
       key: key,
       data: data,
       children: children,
-      text: text
+      text: text,
+      componentOptions: componentOptions // 组件的构造函数
       // 事件、插槽、指令......
     };
   }
@@ -1412,7 +1453,7 @@
     Vue.prototype._init = function (options) {
       // this 就是 Vue 实例，经常写 this 太烦，又容易混淆 this，取别名
       var vm = this;
-      debugger;
+
       // 将用户选项挂载到 Vue 实例上，便于其他地方使用
       vm.$options = mergeOptions(this.constructor.options, options); // mergeOPtions，合并当前传入的options和Vue的全局options（也就是我们混入的mixin的options）
 

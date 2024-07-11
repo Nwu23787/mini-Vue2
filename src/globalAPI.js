@@ -4,7 +4,9 @@ import { mergeOptions } from "./utils";
 
 export function initGlobalAPI(Vue) {
 
-    Vue.options = {}
+    Vue.options = {
+        _base: Vue
+    }
 
     Vue.mixin = function (mixin) {
         // 合并原有的钩子和传进来的钩子
@@ -12,7 +14,7 @@ export function initGlobalAPI(Vue) {
         return this
     }
 
-    //使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象。手动创造组件
+    //使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象。手动创造组件。返回一个组件的构造函数
     Vue.extend = function (options) {
 
         // 返回的子类
@@ -25,10 +27,18 @@ export function initGlobalAPI(Vue) {
         Sub.prototype = Object.create(Vue.prototype)
         // create 继承会改变子类的constractor
         Sub.prototype.constructor = Sub
-        // 保存用户传递的选项
-        Sub.options = options
+        // 保将用户传递的参数和全局的Vue.options 合并
+        Sub.options = mergeOptions(Vue.options, options)
 
         return Sub
+    }
+
+    // 存储全局组件，将组件的构造函数统一挂载到全局上去
+    Vue.options.components = {}
+    Vue.component = function (id, definition) {
+        // definition 可能为对象或者 Vue.extend 函数，需要统一
+        definition = typeof definition === 'function' ? definition : Vue.extend(definition)
+        Vue.options.components[id] = definition
     }
 
 }

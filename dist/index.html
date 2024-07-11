@@ -28,13 +28,17 @@
       }
     })
 
-    setTimeout(() => {
-      vm.name = 12
-    }, 1000);
-    console.log(Vue.options);
+    Vue.component('my-btn', {
+      template: '<button>全局button</button>'
+    })
 
     let Sub = Vue.extend({
-      template:'<button>点击</button>'
+      template: '<div>子组件<my-btn></my-btn></div>',
+      components: {
+        'my-btn': {
+          template: '<button>子组件内部的btn</button>'
+        }
+      }
     })
 
     new Sub().$mount('#root')
