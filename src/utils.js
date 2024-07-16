@@ -35,7 +35,7 @@ strats.components = function (parent, child) {
 
     if (child) {
         for (let key in child) {
-            res[key] = parent[key]
+            res[key] = child[key]
         }
     }
 

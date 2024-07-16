@@ -29,14 +29,18 @@ export function createElement(vm, tag, data = {}, ...children) { // Vue 实例�
 // 创建组件虚拟节点
 function createComponentVnode(vm, tag, key, data, children, Ctor) {
     // 判断 Ctor 是不是对象
-    debugger
     if (typeof Ctor === 'object') {
         Ctor = vm.$options._base.extend(Ctor);
     }
 
-    data.hook={
+    data.hook = {
         // 组件创建真实节点时调用
-        init(){}
+        init(vnode) {
+            // 拿到组件的构造函数,创建实例,并将实例挂载到vnode上
+            let instance = vnode.componentInstance = new vnode.componentOptions.Ctor
+            // 挂载组件
+            instance.$mount()
+        }
     }
 
     return vnode(vm, tag, key, data, children, null, {

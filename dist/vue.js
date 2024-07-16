@@ -393,7 +393,7 @@
     var res = Object.create(parent);
     if (child) {
       for (var key in child) {
-        res[key] = parent[key];
+        res[key] = child[key];
       }
     }
     return res;
@@ -726,7 +726,7 @@
     }
     if (isReservedTag(tag)) {
       // 创建原生标签的虚拟节点
-      return vnode(vm, tag, key, data, children);
+      return vnode$1(vm, tag, key, data, children);
     } else {
       // 这个标签代表的是一个组件，创建组件的虚拟节点
       var Ctor = vm.$options.components[tag];
@@ -739,22 +739,30 @@
   // 创建组件虚拟节点
   function createComponentVnode(vm, tag, key, data, children, Ctor) {
     // 判断 Ctor 是不是对象
-    debugger;
     if (_typeof(Ctor) === 'object') {
       Ctor = vm.$options._base.extend(Ctor);
     }
-    return vnode(vm, tag, key, data, children, null, {
+    data.hook = {
+      // 组件创建真实节点时调用
+      init: function init(vnode) {
+        // 拿到组件的构造函数,创建实例,并将实例挂载到vnode上
+        var instance = vnode.componentInstance = new vnode.componentOptions.Ctor();
+        // 挂载组件
+        instance.$mount();
+      }
+    };
+    return vnode$1(vm, tag, key, data, children, null, {
       Ctor: Ctor
     });
   }
 
   // 创建文本节点的VNode
   function createTextVNode(vm, text) {
-    return vnode(vm, undefined, undefined, undefined, undefined, text);
+    return vnode$1(vm, undefined, undefined, undefined, undefined, text);
   }
 
   // 创建 Vnode  的方法
-  function vnode(vm, tag, key, data, children, text, componentOptions) {
+  function vnode$1(vm, tag, key, data, children, text, componentOptions) {
     // 返回创建的虚拟 DOM
     return {
       vm: vm,
@@ -773,6 +781,17 @@
   // AST 是描述语言的
   // 虚拟 DOM 是描述 DOM 的
 
+  function createComponent(vnode) {
+    var i = vnode.data;
+    // 拿到组件的初始化方法并调用
+    if ((i = i.hook) && (i = i.init)) {
+      i(vnode);
+    }
+    if (vnode.componentInstance) {
+      return true;
+    }
+  }
+
   // 创建真实DOM
   function createElm(vnode) {
     // 将 VNode 解构
@@ -782,6 +801,11 @@
       text = vnode.text;
     if (typeof tag === 'string') {
       // 传入的是标签，文本节点的tag为undefined
+      // 如果传入的标签是一个组件
+      if (createComponent(vnode)) {
+        // debugger
+        return vnode.componentInstance.$el;
+      }
       // 创建元素
       // ！！！把真实 DOM 挂载到 虚拟DOM 上！便于后续更新，比如修改了属性，就可以直接找到真实的dom进行更新，挂载在 el 属性上
       vnode.el = document.createElement(tag);
@@ -789,6 +813,7 @@
       // 更新元素属性
       patchProps(vnode.el, {}, data);
 
+      // debugger
       // 创建子DOM
       children.forEach(function (item) {
         // 挂载子DOM
@@ -844,10 +869,13 @@
    * @param {Object} newVnode 新的 VNode
    */
   function patch(oldVnode, newVnode) {
+    // 没有传oldvnode，说明是组件的挂载
+    if (!oldVnode) {
+      return createElm(vnode);
+    }
     var isRealElement = oldVnode.nodeType;
     // console.log(document.getElementsByTagName('body'));
     // oldVnode = document.getElementById('app')
-    // debugger
 
     if (isRealElement) {
       // 对象上有 nodeType 属性，则为真实 DOM
@@ -944,8 +972,6 @@
     el.innerHTML = '';
   }
   function updateChlidren(el, oldChildren, newChildren) {
-    console.log(oldChildren, newChildren);
-
     // 双指针比较
     var oldStartIndex = 0;
     var newStartIndex = 0;
@@ -971,13 +997,9 @@
 
     // 构造映射表
     var map = makeIndexByKey(oldChildren);
-    console.log(map);
 
     // 循环比较
     while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
-      // console.log(oldStartVnode,newStartVnode);
-      // debugger
-
       if (!oldStartVnode) {
         oldStartVnode = oldChildren[++oldStartIndex];
       } else if (!oldEndVnode) {
@@ -1484,12 +1506,10 @@
           // 获取到 el 对应的 HTML 结构，也就是模版
           template = el.outerHTML;
         } else {
-          if (el) {
-            // 传入了模版和 el
-            template = opts.template;
-          }
+          // 传入了模版
+          template = opts.template;
         }
-        if (template && el) {
+        if (template) {
           // 编译模版，获取 render
           var render = compileToFunction(template);
           opts.render = render;

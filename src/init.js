@@ -13,6 +13,7 @@ export function initMixin(Vue) {
         // this 就是 Vue 实例，经常写 this 太烦，又容易混淆 this，取别名
         const vm = this
 
+
         // 将用户选项挂载到 Vue 实例上，便于其他地方使用
         vm.$options = mergeOptions(this.constructor.options, options) // mergeOPtions，合并当前传入的options和Vue的全局options（也就是我们混入的mixin的options）
 
@@ -45,12 +46,10 @@ export function initMixin(Vue) {
                 // 获取到 el 对应的 HTML 结构，也就是模版
                 template = el.outerHTML
             } else {
-                if (el) {
-                    // 传入了模版和 el
-                    template = opts.template
-                }
+                // 传入了模版
+                template = opts.template
             }
-            if (template && el) {
+            if (template) {
                 // 编译模版，获取 render
                 const render = compileToFunction(template)
                 opts.render = render

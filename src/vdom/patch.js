@@ -1,9 +1,25 @@
+function createComponent(vnode) {
+    let i = vnode.data
+    // 拿到组件的初始化方法并调用
+    if ((i = i.hook) && (i = i.init)) {
+        i(vnode)
+    }
+    if (vnode.componentInstance) {
+        return true
+    }
+}
+
 // 创建真实DOM
 export function createElm(vnode) {
     // 将 VNode 解构
     let { tag, data, children, text } = vnode
     if (typeof tag === 'string') {
         // 传入的是标签，文本节点的tag为undefined
+        // 如果传入的标签是一个组件
+        if (createComponent(vnode)) {
+            // debugger
+            return vnode.componentInstance.$el
+        }
         // 创建元素
         // ！！！把真实 DOM 挂载到 虚拟DOM 上！便于后续更新，比如修改了属性，就可以直接找到真实的dom进行更新，挂载在 el 属性上
         vnode.el = document.createElement(tag)
@@ -11,6 +27,7 @@ export function createElm(vnode) {
         // 更新元素属性
         patchProps(vnode.el, {}, data)
 
+        // debugger
         // 创建子DOM
         children.forEach((item) => {
             // 挂载子DOM
@@ -66,10 +83,13 @@ export function patchProps(el, oldProps = {}, props = {}) {
  * @param {Object} newVnode 新的 VNode
  */
 export function patch(oldVnode, newVnode) {
+    // 没有传oldvnode，说明是组件的挂载
+    if(!oldVnode){
+        return createElm(vnode)
+    }
     const isRealElement = oldVnode.nodeType
     // console.log(document.getElementsByTagName('body'));
     // oldVnode = document.getElementById('app')
-    // debugger
 
     if (isRealElement) {
         // 对象上有 nodeType 属性，则为真实 DOM
@@ -174,7 +194,6 @@ function unmountChildren(el) {
 
 
 function updateChlidren(el, oldChildren, newChildren) {
-    console.log(oldChildren, newChildren);
 
     // 双指针比较
     let oldStartIndex = 0
@@ -206,12 +225,9 @@ function updateChlidren(el, oldChildren, newChildren) {
     // 构造映射表
     let map = makeIndexByKey(oldChildren)
 
-    console.log(map);
 
     // 循环比较
     while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
-        // console.log(oldStartVnode,newStartVnode);
-        // debugger
 
         if (!oldStartVnode) {
             oldStartVnode = oldChildren[++oldStartIndex]
