@@ -17,7 +17,6 @@ export function createElm(vnode) {
         // 传入的是标签，文本节点的tag为undefined
         // 如果传入的标签是一个组件
         if (createComponent(vnode)) {
-            // debugger
             return vnode.componentInstance.$el
         }
         // 创建元素
@@ -27,10 +26,10 @@ export function createElm(vnode) {
         // 更新元素属性
         patchProps(vnode.el, {}, data)
 
-        // debugger
         // 创建子DOM
         children.forEach((item) => {
             // 挂载子DOM
+
             vnode.el.appendChild(createElm(item))
         })
     } else {
@@ -84,7 +83,8 @@ export function patchProps(el, oldProps = {}, props = {}) {
  */
 export function patch(oldVnode, newVnode) {
     // 没有传oldvnode，说明是组件的挂载
-    if(!oldVnode){
+
+    if (!oldVnode) {
         return createElm(vnode)
     }
     const isRealElement = oldVnode.nodeType

@@ -803,7 +803,6 @@
       // 传入的是标签，文本节点的tag为undefined
       // 如果传入的标签是一个组件
       if (createComponent(vnode)) {
-        // debugger
         return vnode.componentInstance.$el;
       }
       // 创建元素
@@ -813,10 +812,10 @@
       // 更新元素属性
       patchProps(vnode.el, {}, data);
 
-      // debugger
       // 创建子DOM
       children.forEach(function (item) {
         // 挂载子DOM
+
         vnode.el.appendChild(createElm(item));
       });
     } else {
@@ -870,6 +869,7 @@
    */
   function patch(oldVnode, newVnode) {
     // 没有传oldvnode，说明是组件的挂载
+
     if (!oldVnode) {
       return createElm(vnode);
     }
@@ -1104,11 +1104,13 @@
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
       var vm = this;
-      this.$el = document.getElementById('app');
+      if (!this.el) this.$el = document.getElementById('app');
       var el = this.$el;
 
       // 保存上一次渲染的vnode到vm上
       var preVnode = vm._vnode;
+      vm._vnode = vnode; // 将组件第一次产生的vnode保存到实例上
+
       if (preVnode) {
         // 之前渲染过，传递上一次的vnode
         vm.$el = patch(preVnode, vnode);
@@ -1116,7 +1118,7 @@
         //第一次渲染，传真实的el
         vm.$el = patch(el, vnode);
       }
-      vm._vnode = vnode; // 将组件第一次产生的vnode保存到实例上
+
       // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
       // return vm.$el = patch(el, vnode) // patch 更新 或者 初始化渲染 方法
     };

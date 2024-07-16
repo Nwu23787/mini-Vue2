@@ -30,11 +30,12 @@ export function initLifeCycle(Vue) {
     // 挂载 update 函数到实例上
     Vue.prototype._update = function (vnode) {
         const vm = this
-        this.$el = document.getElementById('app')
+        if (!this.el) this.$el = document.getElementById('app')
         const el = this.$el
 
         // 保存上一次渲染的vnode到vm上
         const preVnode = vm._vnode
+        vm._vnode = vnode // 将组件第一次产生的vnode保存到实例上
 
         if (preVnode) {
             // 之前渲染过，传递上一次的vnode
@@ -44,7 +45,6 @@ export function initLifeCycle(Vue) {
             vm.$el = patch(el, vnode)
         }
 
-        vm._vnode = vnode // 将组件第一次产生的vnode保存到实例上
         // 传入两个参数，第一个参数是真实 dom，第二个参数是虚拟 dom，patch 会按照 vnode 创建一个真实 dom，替换掉我们传入的 el
         // return vm.$el = patch(el, vnode) // patch 更新 或者 初始化渲染 方法
     }

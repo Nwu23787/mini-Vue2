@@ -37,7 +37,7 @@ export function initMixin(Vue) {
         const vm = this
         // 获取 el 对应的真实 dom
         el = document.querySelector(el)
-        const opts = vm.$options
+        let opts = vm.$options
         if (!opts.render) {
             // 没有传 render 选项
             let template
