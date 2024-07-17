@@ -5,26 +5,6 @@ import { parseHTML } from "./parse"
 // 匹配双花括号 {{value}}
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 
-/* 语法树结构
-    元素节点结构
- {
-     tag: 'div', // 标签名
-     type: 1, // 节点类型：1 元素节点 3 文本节点
-     attrs: [{ name: 'id', value: 'app' }], // 属性数组
-     parent: null, // 父节点，根节点的父节点wei null
-     children: [  // 节点下的子节点
-         {}, {}
-     ]
- }
-
-    文本节结构
- {
-    type: 3,
-    text,
-    parent: currentParent
- }
- */
-
 // 将 template 模版转化成 AST 语法树
 
 function genProps(attrs) {
@@ -104,16 +84,7 @@ export function compileToFunction(template) {
     // 1. 将 template 模版转化成 AST 语法树
     let ast = parseHTML(template)
 
-    // console.log(ast);
     // 2. 生成 render 方法
-
-    // 目标：把AST语法树组装成下面这样的语法
-    // _c 生成元素节点
-    // _v 生成文本节点
-    // _s 处理变量
-    // render(){
-    // return _c('div', { id: 'app', style: { "color": 'red' } }, _v(_s(name) + 'hello'), _v('span', null, _v('text1')))
-    // }
 
     let code = codegen(ast)
 

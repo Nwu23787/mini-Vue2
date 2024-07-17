@@ -67,8 +67,3 @@ function vnode(vm, tag, key, data, children, text, componentOptions) {
         // 事件、插槽、指令......
     }
 }
-
-// 和 AST 不一样，AST 只是语法层面的抽象，语法是什么样，AST节点就必须是什么样，不能人为添加一些属性
-// 但是虚拟 DOM 是描述 dom 元素的，可以增加一些自定义的属性
-// AST 是描述语言的
-// 虚拟 DOM 是描述 DOM 的
