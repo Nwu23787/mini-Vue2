@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <p style="color: red;">三秒后我将变成success</p>
+        <div>
+            {{state}}
+        </div>
+    </div>
+    <script src="../dist/vue.js"></script>
+    <script>
+        // 响应式测试
+        var vm = new Vue({
+            data:{
+                state:'pendding'
+            }
+        })
+        vm.$mount('#app')
+        setTimeout(() => {
+            vm.state = 'success'
+        }, 3000);
+    </script>
+</body>
+
+</html>

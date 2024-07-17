@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+    </div>
+    <script src="../dist/vue.js"></script>
+    <script>
+        // 局部组件测试
+        Vue.component('my-btn', {
+            template: '<button>全局定义的button</button>'
+        })
+
+        let Sub = Vue.extend({
+            template: '<my-btn></my-btn>',
+            components: {
+                'my-btn': {
+                    template: '<button>子组件内部定义的btn</button>'
+                }
+            }
+        })
+
+        new Sub().$mount('#app')
+    </script>
+</body>
+
+</html>
