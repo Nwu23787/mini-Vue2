@@ -1,8 +1,9 @@
-export let Vue
+import { install, Vue } from "./install"
+
 
 class VueRouter {
     constructor(options) {
-
+        let routes = options.router
     }
 }
 
@@ -10,9 +11,6 @@ class VueRouter {
  * 供 Vue.use 调用，Vue.use 会调用插件的 install 方法
  *  @params _Vue 传入的 Vue 构造函数
  */
-VueRouter.install = function (_Vue) {
-    Vue = _Vue // 将传入的 Vue 构造函数挂载到全局上
-    console.log('install');
-}
+VueRouter.install = install
 
 export default VueRouter
