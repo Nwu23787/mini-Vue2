@@ -1,0 +1,8 @@
+# node_modules
+# public
+# src
+# .browserslistrc
+# babel.config.js
+# *.json
+# vue.config.js
+# *.lock
