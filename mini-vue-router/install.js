@@ -21,7 +21,23 @@ export function install(_Vue) {
     Object.defineProperty(Vue.prototype, '$router', {
         get() {
             // 代理一层，不通过 this._routerRoot.router 来访问路由，而是通过 this.$router 的便捷方式
-            return this._routerRoot && this._routerRoot.router
+            return this._routerRoot && this._routerRoot._router
+        }
+    })
+
+    // 定义 <router-link> 全局组件
+    Vue.component('router-link', {
+        render() {
+            // this.$slots 获取到所有的插槽
+            return <a>{this.$slots.default}</a>
+        }
+    })
+
+    // 定义 <router-view> 全局组件
+    Vue.component('router-view', {
+        render() {
+            // this.$slots 获取到所有的插槽
+            return <div>router-view</div>
         }
     })
 }
