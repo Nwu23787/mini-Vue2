@@ -9,7 +9,7 @@ function Vue(options) {
     this._init(options)
 }
 
-initMixin(Vue) //将 _init 方法添加到 Vue 实例原型上，供 Vue 实例调用
+initMixin(Vue) // 将 _init 方法添加到 Vue 实例原型上，供 Vue 实例调用
 initLifeCycle(Vue)
 initStateMixin(Vue)
 initGlobalAPI(Vue)
