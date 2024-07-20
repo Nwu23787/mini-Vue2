@@ -1,4 +1,4 @@
-node_modules
+/mini-Vue2/node_modules
 # public
 # src
 # .browserslistrc
