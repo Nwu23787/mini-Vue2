@@ -36,7 +36,7 @@ class HTML5History extends history {
      * @param {string} location 要跳转的路由path值
      */
     push(location) {
-        window.location.pathname = location
+        window.history.pushState(null, '', location)
     }
 }
 

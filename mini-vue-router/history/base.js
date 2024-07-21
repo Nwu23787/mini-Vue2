@@ -23,6 +23,22 @@ function createRoute(record, location) {
     }
 }
 
+/**
+ * 顺序执行某个回调队列
+ * @param {Array} queue 回调队列
+ * @param {object} from 来着哪个路由
+ * @param {object} to 去往哪个路由
+ * @param {function} cb 队列执行完成之后的回调 
+ */
+function runQueue(queue, from, to, cb) {
+    function next(index) {
+        if (index >= queue.length) return cb()
+        let hook = queue[index]
+        hook(from, to, () => next(index + 1))
+    }
+    next(0)
+}
+
 class history {
     constructor(router) {
         this.router = router
@@ -36,21 +52,27 @@ class history {
 
         let route = createRoute(record, location)
 
-        // 跳转的路径和匹配结果一致
-        if (location === this.current.path && route.matched.length === this.current.matched.length) {
-            // 拦截重复跳转
-            return
-        }
+        let queue = [].concat(this.router.beforeHooks)
 
-        // 每次跳转，都要更新 current
-        this.current = route
-        if (callback) callback()
+        runQueue(queue, this.current, route, () => {
+            // 跳转的路径和匹配结果一致
+            if (location === this.current.path && route.matched.length === this.current.matched.length) {
+                // 拦截重复跳转
+                return
+            }
 
-        // 更新 _route 的值
-        this.cb && this.cb(route)
+            // 每次跳转，都要更新 current
+            this.current = route
+            if (callback) callback()
+
+            // 更新 _route 的值
+            this.cb && this.cb(route)
+        })
+
+
     }
 
-    listen(cb){
+    listen(cb) {
         this.cb = cb
     }
 }

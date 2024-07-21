@@ -4,9 +4,32 @@ import HTML5History from "./history/html5";
 import { install, Vue } from "./install"
 
 
+/**
+ * 用于向钩子对应的回调队列中添加回调函数
+ * @param {Array} list 回调队列
+ * @param {Function} fn 要添加的回调函数
+ * @returns 返回一个删除刚加入的这个回调的函数
+ */
+function registerHook(list, fn) {
+    list.push(fn) // 加入回调队列
+
+    // 返回一个删除刚加入的这个回调的函数
+    return () => {
+        const i = list.indexOf(fn)
+        if (i > -1) list.splice(i, 1)
+    }
+}
+
 
 class VueRouter {
     constructor(options) {
+        this.options = options
+
+        // 钩子对应的回调队列
+        this.beforeHooks = []
+        this.resolveHooks = []
+        this.afterHooks = []
+
         let routes = options.routes || []
 
         // 创建路由匹配器与路由映射表，即相关方法
@@ -68,6 +91,19 @@ class VueRouter {
             this.history.push(location)
         })
     }
+
+    beforeEach(cb) {
+        return registerHook(this.beforeHooks, cb)
+    }
+
+    beforeResolve(cb) {
+        return registerHook(this.resolveHooks, cb)
+    }
+
+    afterEach(cb) {
+        return registerHook(this.afterHooks, cb)
+    }
+
 }
 
 /**
