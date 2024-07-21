@@ -9,21 +9,19 @@ export default function createMatcher(routes) {
 
 
     /**
-     * 
-     * @param {Array} routes 动态添加多个路由
+     * 动态添加多个路由
+     * @param {Array} routes 要动态添加多个路由数组
      */
     function addRoutes(routes) {
         createRouteMap(routes, pathMap)
-        console.log(pathMap);
     }
 
     /**
-     * 
-     * @param {object} route 动态添加一个路由
+     * 动态添加一个路由
+     * @param {object} route 要动态添加一个路由
      */
     function addRoute(route) {
         createRouteMap([route], pathMap)
-        console.log(pathMap);
 
     }
 

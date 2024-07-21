@@ -31,8 +31,8 @@ class hashHistory extends history {
      * 创建监听器，监听hash值的变化
      */
     setupListeners() {
-        window.addEventListener('hashchange', function () {
-            console.log(getHash());
+        window.addEventListener('hashchange',  ()=> {
+            this.transitionTo(getHash())
         })
     }
 
@@ -40,7 +40,7 @@ class hashHistory extends history {
      * 获取当前的地址值（hash）
      * @returns 当前的地址值（hash）
      */
-    getCurrentLocation(){
+    getCurrentLocation() {
         return getHash()
     }
 }

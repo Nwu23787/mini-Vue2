@@ -43,6 +43,11 @@ class VueRouter {
             history.setupListeners()
         })
 
+        // 每次路由跳转时需要调用的回调函数，在每次调用后更新 _route 的值
+        history.listen((newRoute)=>{
+            app._route = newRoute
+        })
+
     }
 
     /**
@@ -59,7 +64,9 @@ class VueRouter {
      * @param {string} location 路由地址  
      */
     push(location) {
-      this.history.transitionTo(location)
+        this.history.transitionTo(location, () => {
+            window.location.hash = location
+        })
     }
 }
 

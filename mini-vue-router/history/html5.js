@@ -20,7 +20,6 @@ class HTML5History extends history {
     */
     setupListeners() {
         window.addEventListener('popstate', function () {
-            console.log(getPathName());
         })
     }
 

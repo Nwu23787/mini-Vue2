@@ -31,7 +31,8 @@ function addRouteRecord(route, pathMap, parentRecord) {
         component: route.component,
         props: route.props,
         meta: route.meta,
-        name: route.name
+        name: route.name,
+        parent: parentRecord
     }
     // 路径 对应 路由信息 
     // 如果路径相同，后面的路由会覆盖前面的路由
