@@ -31,7 +31,7 @@ class hashHistory extends history {
      * 创建监听器，监听hash值的变化
      */
     setupListeners() {
-        window.addEventListener('hashchange',  ()=> {
+        window.addEventListener('hashchange', () => {
             this.transitionTo(getHash())
         })
     }
@@ -42,6 +42,14 @@ class hashHistory extends history {
      */
     getCurrentLocation() {
         return getHash()
+    }
+
+    /**
+     * 传入 location ，对应修改地址栏
+     * @param {string} location 要跳转的路由path值
+     */
+    push(location) {
+        window.location.hash = location
     }
 }
 

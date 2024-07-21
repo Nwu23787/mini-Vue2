@@ -30,6 +30,14 @@ class HTML5History extends history {
     getCurrentLocation() {
         return getPathName()
     }
+
+    /**
+     * 传入 location ，对应修改地址栏
+     * @param {string} location 要跳转的路由path值
+     */
+    push(location) {
+        window.location.pathname = location
+    }
 }
 
 export default HTML5History
