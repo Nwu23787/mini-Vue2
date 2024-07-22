@@ -19,7 +19,8 @@ class HTML5History extends history {
     * 创建监听器
     */
     setupListeners() {
-        window.addEventListener('popstate', function () {
+        window.addEventListener('popstate', () => {
+            this.transitionTo(getPathName())
         })
     }
 
@@ -36,7 +37,8 @@ class HTML5History extends history {
      * @param {string} location 要跳转的路由path值
      */
     push(location) {
-        window.history.pushState(null, '', location)
+        window.history.pushState({}, '', location)
+        this.transitionTo(getPathName())
     }
 }
 
