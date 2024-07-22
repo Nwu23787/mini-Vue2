@@ -16,7 +16,7 @@ class HTML5History extends history {
     }
 
     /**
-    * 创建监听器
+    * 创建监听器，当用户点击浏览器前进 / 后退按钮时触发
     */
     setupListeners() {
         window.addEventListener('popstate', () => {
@@ -38,6 +38,7 @@ class HTML5History extends history {
      */
     push(location) {
         window.history.pushState({}, '', location)
+        // 注意：pushState 和 replaceState不会触发 popState 事件，需要手动调用 transitionTo
         this.transitionTo(getPathName())
     }
 }

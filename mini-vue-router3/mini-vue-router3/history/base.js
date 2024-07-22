@@ -57,8 +57,6 @@ class history {
     }
 
     transitionTo(location, callback) {
-        console.log('执行了',location);
-
 
         let record = this.router.match(location)
 
@@ -67,7 +65,6 @@ class history {
         let queue = this.router.beforeHooks
         // 跳转的路径和匹配结果一致
         if (location === this.current.path && route.matched.length === this.current.matched.length) {
-            console.log('方法');
             
             // 拦截重复跳转
             return
