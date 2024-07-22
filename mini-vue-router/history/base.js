@@ -30,11 +30,11 @@ function createRoute(record, location) {
  * @param {object} to 去往哪个路由
  * @param {function} cb 队列执行完成之后的回调 
  */
-function runQueue(history, queue, from, to, cb) {
+function runQueue(history, queue, to, from, cb) {
     function next(index) {
         if (index >= queue.length) return cb()
         let hook = queue[index]
-        hook(from, to, (args) => {
+        hook && hook(from, to, (args) => {
             if (args) {
                 let path = typeof args === 'object' ? args.path : args
                 if (path) {
@@ -62,14 +62,15 @@ class history {
 
         let route = createRoute(record, location)
 
-        let queue = [].concat(this.router.beforeHooks)
+        let queue = this.router.beforeHooks
+        // 跳转的路径和匹配结果一致
+        if (location === this.current.path && route.matched.length === this.current.matched.length) {
+            // 拦截重复跳转
+            return
+        }
 
-        runQueue(this, queue, this.current, route, () => {
-            // 跳转的路径和匹配结果一致
-            if (location === this.current.path && route.matched.length === this.current.matched.length) {
-                // 拦截重复跳转
-                return
-            }
+        // 执行前置路由守卫
+        runQueue(this, queue, route, this.current, () => {
 
             // 每次跳转，都要更新 current
             this.current = route
@@ -77,6 +78,12 @@ class history {
 
             // 更新 _route 的值
             this.cb && this.cb(route)
+
+            let afterQueue = this.router.afterHooks
+
+            // 执行后置路由守卫
+            runQueue(this, afterQueue, route, this.current, () => { })
+
         })
 
 

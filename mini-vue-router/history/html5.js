@@ -16,7 +16,7 @@ class HTML5History extends history {
     }
 
     /**
-    * 创建监听器，监听hash值的变化
+    * 创建监听器
     */
     setupListeners() {
         window.addEventListener('popstate', function () {

@@ -27,7 +27,6 @@ class VueRouter {
 
         // 钩子对应的回调队列
         this.beforeHooks = []
-        this.resolveHooks = []
         this.afterHooks = []
 
         let routes = options.routes || []
@@ -92,14 +91,20 @@ class VueRouter {
         })
     }
 
+    /**
+     * 全局前置路由守卫
+     * @param {Function} cb 回调函数  
+     * @returns 删除此回调函数的方法    
+     */
     beforeEach(cb) {
         return registerHook(this.beforeHooks, cb)
     }
 
-    beforeResolve(cb) {
-        return registerHook(this.resolveHooks, cb)
-    }
-
+    /**
+     * 全局后置路由守卫
+     * @param {Function} cb 回调函数  
+     * @returns 删除此回调函数的方法    
+     */
     afterEach(cb) {
         return registerHook(this.afterHooks, cb)
     }
