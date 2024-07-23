@@ -33,7 +33,6 @@ export default class Module {
 
     forEachChildren(cb) {
         Object.keys(this._children).forEach(key => {
-            console.log(this._children[key]);
             cb(key, this._children[key])
         })
     }

@@ -1,4 +1,4 @@
-import { install } from "vuex";
+import install, { Vue } from "./install";
 import ModuleCollection from "./module/module-collection";
 
 /**
@@ -54,6 +54,36 @@ function installModule(store, rootState, path, rootModule) {
     })
 }
 
+function resetStoreVM(store, state) {
+    const computed = {}
+    store.getters = {}
+
+    // 将 getters 添加给 computed
+    Object.keys(store._warppedGetters).forEach(key => {
+        computed[key] = () => {
+            return store._warppedGetters[key](state)
+        }
+
+        // 代理，取 getter 时返回 computed 的值
+        Object.defineProperty(store.getters, key, {
+            get: () => {
+                return store._vm[key]
+            }
+        })
+    })
+
+    store._vm = new Vue({
+        data: {
+            // 将 state 存放在 vue 的 data 中，目的是为其添加响应式
+            // 添加 $ 是为了不让 vue 将 state 直接代理到 vm 上，不希望用户可以直接这样访问到 state
+            $$state: state
+        },
+        // 用于实现计算属性
+        computed,
+    })
+
+}
+
 class Store {
     constructor(options) {
         // 由于 modules 嵌套，需要预处理这些模块，获取模块间的父子关系。即模块收集
@@ -68,8 +98,29 @@ class Store {
         installModule(this, state, [], this._modules.root)
 
         // 注意此时 state 并不在 store 实例上
+        // 创建 vue 实例，并将 state 放置在 data 中，getters 放置在 computed 中
+        resetStoreVM(this, state)
+
 
     }
+
+    // 通过 commit 调用 mutations
+    commit = (funcName, payload) => {
+        this._mutations[funcName].forEach(fn => fn.call(this, payload))
+    }
+
+    // 通过 dispatch 调用 actions
+    dispatch = (funcName, payload) => {
+        this._actions[funcName].forEach(fn => fn.call(this, payload))
+    }
+
+    // 取 state 时需要向 vm 上去取
+    get state() {
+        return this._vm._data.$$state
+    }
+
+
+
 }
 
 
