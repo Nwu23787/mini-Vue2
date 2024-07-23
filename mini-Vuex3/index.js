@@ -20,30 +20,32 @@ function installModule(store, rootState, path, rootModule) {
         // 将子模块的 state 挂载到父模块的 state 上
         parent[path[path.length - 1]] = rootModule.state
     }
-    // 是根模块
+
+    let namespaced = store._modules.getNamespaced(path)
+
     // 将 mutations 中的方法安装到根实例上，维护成数组，同名的方法放在同一个数组中
     rootModule.forEachMutations((key, val) => {
-        store._mutations[key] = (store._mutations[key] || [])
-        store._mutations[key].push((payload) => {
+        store._mutations[namespaced + key] = (store._mutations[namespaced + key] || [])
+        store._mutations[namespaced + key].push((payload) => {
             val(rootModule.state, payload)
         })
     })
 
     // 将 actions 中的方法安装到根实例上，维护成数组，同名的方法放在同一个数组中
     rootModule.forEachActions((key, val) => {
-        store._actions[key] = (store._actions[key] || [])
-        store._actions[key].push((payload) => {
+        store._actions[namespaced + key] = (store._actions[namespaced + key] || [])
+        store._actions[namespaced + key].push((payload) => {
             val(rootModule.state, payload)
         })
     })
 
     // 计算属性不用维护成一个数组，计算属性不能重名
     rootModule.forEachGetters((key, val) => {
-        if (store._warppedGetters[key]) {
+        if (store._warppedGetters[namespaced + key]) {
             // 计算属性重名报错
             throw new Error(`duplicate getter key '${key}'`)
         }
-        store._warppedGetters[key] = () => {
+        store._warppedGetters[namespaced + key] = () => {
             return val(rootModule.state)
         }
     })
