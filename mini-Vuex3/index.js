@@ -4,13 +4,21 @@ import ModuleCollection from "./module/module-collection";
 /**
  * 
  * @param {Store} store store实例
- * @param {Object} rootState 根state
+ * @param {Object} rootState 根 state
  * @param {Array} path 模块路径
  * @param {Module} rootModule 当前模块
  */
 function installModule(store, rootState, path, rootModule) {
     if (path.length > 0) {
-        // 是子模块
+        // 是子模块，需要将子模块的 state 挂在父模块的 state 上
+        // 找父模块
+        let parent = rootState
+        path.slice(0, -1).forEach(key => {
+            // 按照 path 一层层去寻找父级
+            parent = parent[key]
+        })
+        // 将子模块的 state 挂载到父模块的 state 上
+        parent[path[path.length - 1]] = rootModule.state
     }
     // 是根模块
     // 将 mutations 中的方法安装到根实例上，维护成数组，同名的方法放在同一个数组中
@@ -58,7 +66,9 @@ class Store {
         const state = this._modules.root.state
         // 安装模块
         installModule(this, state, [], this._modules.root)
-        console.log(this._modules);
+
+        // 注意此时 state 并不在 store 实例上
+
     }
 }
 
