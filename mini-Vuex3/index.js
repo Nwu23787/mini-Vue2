@@ -28,7 +28,11 @@ function installModule(store, rootState, path, rootModule) {
     rootModule.forEachMutations((key, val) => {
         store._mutations[namespaced + key] = (store._mutations[namespaced + key] || [])
         store._mutations[namespaced + key].push((payload) => {
-            val(rootModule.state, payload)
+            val(getState(store, path), payload)
+            // 执行 subscribe 中传入的函数
+            store.subscribes.forEach(fn => {
+                fn({ type: key, payload }, store.state)
+            })
         })
     })
 
@@ -47,7 +51,7 @@ function installModule(store, rootState, path, rootModule) {
             throw new Error(`duplicate getter key '${key}'`)
         }
         store._warppedGetters[namespaced + key] = () => {
-            return val(rootModule.state)
+            return val(getState(store, path))
         }
     })
 
@@ -92,14 +96,29 @@ function resetStoreVM(store, state) {
     }
 }
 
+/**
+ * 根据路径获取该路径的state
+ * @param {Store} store store实例
+ * @param {Array} path 路径
+ * @returns 该路径的 state
+ */
+function getState(store, path) {
+    let res = store.state
+    path.forEach(key => {
+        res = res[key]
+    })
+    return res
+}
+
 class Store {
     constructor(options) {
         // 由于 modules 嵌套，需要预处理这些模块，获取模块间的父子关系。即模块收集
         this._modules = new ModuleCollection(options)
-
         this._mutations = Object.create(null)
         this._actions = Object.create(null)
         this._warppedGetters = Object.create(null)
+        this.plugins = options.plugins || []
+        this.subscribes = []
         // state
         const state = this._modules.root.state
         // 安装模块
@@ -109,6 +128,8 @@ class Store {
         // 创建 vue 实例，并将 state 放置在 data 中，getters 放置在 computed 中
         resetStoreVM(this, state)
 
+        // 执行插件（插件就是函数），插件方法接收一个参数，store
+        this.plugins.forEach(plugin => plugin(this))
 
     }
 
@@ -120,6 +141,16 @@ class Store {
     // 通过 dispatch 调用 actions
     dispatch = (funcName, payload) => {
         this._actions[funcName].forEach(fn => fn.call(this, payload))
+    }
+
+    /**
+     * 订阅 store 的 mutation。handler 会在每个 mutation 完成后调用，接收 mutation 和经过 mutation 后的状态作为参数：
+     * @param {Function} handler 每个 mutation 完成后调用的函数
+     */
+    subscribe(handler) {
+        if (typeof handler === 'function') {
+            this.subscribes.push(handler)
+        }
     }
 
     // 取 state 时需要向 vm 上去取
@@ -143,6 +174,14 @@ class Store {
         resetStoreVM(this, this.state)
     }
 
+    /**
+     * 替换 store 的根状态，仅用状态合并或时光旅行调试。
+     * @param {Object} state 替换后的状态
+     */
+    replaceState(state) {
+        this._vm._data.$$state = state
+        console.log(this._vm._data);
+    }
 
 }
 
