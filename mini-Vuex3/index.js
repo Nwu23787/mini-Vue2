@@ -18,7 +18,8 @@ function installModule(store, rootState, path, rootModule) {
             parent = parent[key]
         })
         // 将子模块的 state 挂载到父模块的 state 上
-        parent[path[path.length - 1]] = rootModule.state
+
+        Vue.set(parent, [path[path.length - 1]], rootModule.state)
     }
 
     let namespaced = store._modules.getNamespaced(path)
@@ -57,6 +58,7 @@ function installModule(store, rootState, path, rootModule) {
 }
 
 function resetStoreVM(store, state) {
+    let oldVm = store._vm
     const computed = {}
     store.getters = {}
 
@@ -84,6 +86,10 @@ function resetStoreVM(store, state) {
         computed,
     })
 
+
+    if (oldVm) {
+        Vue.nextTick(() => oldVm.$destroy())
+    }
 }
 
 class Store {
@@ -121,6 +127,21 @@ class Store {
         return this._vm._data.$$state
     }
 
+    /**
+     * 
+     * @param {Array | String} path 路径，指定要将模块添加到哪个父模块下
+     * @param {Object} module 
+     */
+    registerModule(path, module) {
+        // 注册模块
+        this._modules.register(path, module)
+
+        // 安装这个模块
+        installModule(this, this.state, path, module.newModule)
+
+        // 处理 getters
+        resetStoreVM(this, this.state)
+    }
 
 
 }

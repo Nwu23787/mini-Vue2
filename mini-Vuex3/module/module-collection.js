@@ -30,6 +30,7 @@ export default class ModuleCollection {
     register(path, rootModule) {
         // _raw 用于保存原本的模块
         let newModule = new Module(rootModule)
+        rootModule.newModule = newModule
 
         if (!this.root) {
             // root 无值，当前模块是根模块，根模块不可能是其他模块的子模块
