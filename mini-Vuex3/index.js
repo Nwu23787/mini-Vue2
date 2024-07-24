@@ -35,7 +35,7 @@ function installModule(store, rootState, path, rootModule) {
     rootModule.forEachActions((key, val) => {
         store._actions[namespaced + key] = (store._actions[namespaced + key] || [])
         store._actions[namespaced + key].push((payload) => {
-            val(rootModule.state, payload)
+            val(store, payload)
         })
     })
 
