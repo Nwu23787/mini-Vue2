@@ -8,6 +8,20 @@ export default class ModuleCollection {
         this.register([], options)
     }
 
+    // 根据路径获取命名空间前缀
+    getNamespaced(path) {
+        // if (path[0] == 'b') debugger
+        let res = ''
+        let root = this.root
+        path.forEach(key => {
+            // 判断是否为该模块的子模块
+            root = root.getChild(key)
+            // 若该模块存在 namespace，则收集该模块名称
+            res = root._raw.namespaced ? (res + `${key}/`) : res
+        })
+        return res
+    }
+
     /**
      * 递归构建模块父子关系
      * @param {Array} path 路径，记录了模块从根模块到该模块的路径
@@ -16,6 +30,7 @@ export default class ModuleCollection {
     register(path, rootModule) {
         // _raw 用于保存原本的模块
         let newModule = new Module(rootModule)
+        rootModule.newModule = newModule
 
         if (!this.root) {
             // root 无值，当前模块是根模块，根模块不可能是其他模块的子模块
