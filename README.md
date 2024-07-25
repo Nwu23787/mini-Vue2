@@ -60,30 +60,30 @@ mini-Vue2 -- 仿 Vue2
 
 mini-Vue-Router3 -- 仿 Vue-Router3
 ├── mini-vue-router3 -- 源文件
-		├── components -- 路由相关组件
-				├── link.js -- <router-link> 定义
-				└── view.js -- <router-view> 定义
-		├── history -- history 对象
-				├── base.js -- history 父类
-				├── html5.js -- history 模式的 history 对象
-				└── hash.js -- hash 模式的 history 对象
-		├── creat-matcher.js -- 创建路由匹配器
-		├── create-router-map.js  -- 创建路由映射表
-		├── index.js -- 主文件
-		└── install.js -- 插件的 install 方法
+	├── components -- 路由相关组件
+			├── link.js -- <router-link> 定义
+			└── view.js -- <router-view> 定义
+	├── history -- history 对象
+			├── base.js -- history 父类
+			├── html5.js -- history 模式的 history 对象
+			└── hash.js -- hash 模式的 history 对象
+	├── creat-matcher.js -- 创建路由匹配器
+	├── create-router-map.js  -- 创建路由映射表
+	├── index.js -- 主文件
+	└── install.js -- 插件的 install 方法
 └── test -- 测试用例项目	
 
 mini-Vuex3 -- 仿 Vuex3 
 ├── mini-Vuex3 -- 源文件
-		├── module -- 路由相关组件
-				├── module-collection.js -- 创建根 module
-				└── module.js -- module 类
-		├── pulgins -- 插件
-				├── logger.js -- 日志插件
-				└── persists.js -- 持久化插件
-		├── creat-matcher.js -- 创建路由匹配器
-		├── index.js -- 主文件
-		└── install.js -- 插件的 install 方法
+	├── module -- 路由相关组件
+			├── module-collection.js -- 创建根 module
+			└── module.js -- module 类
+	├── pulgins -- 插件
+			├── logger.js -- 日志插件
+			└── persists.js -- 持久化插件
+	├── creat-matcher.js -- 创建路由匹配器
+	├── index.js -- 主文件
+	└── install.js -- 插件的 install 方法
 └── test -- 测试用例项目	
 ```
 
