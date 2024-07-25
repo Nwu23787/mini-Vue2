@@ -19,7 +19,9 @@ function installModule(store, rootState, path, rootModule) {
         })
         // 将子模块的 state 挂载到父模块的 state 上
 
-        Vue.set(parent, [path[path.length - 1]], rootModule.state)
+        store._withCommiting(() => {
+            Vue.set(parent, [path[path.length - 1]], rootModule.state)
+        })
     }
 
     let namespaced = store._modules.getNamespaced(path)
@@ -28,7 +30,9 @@ function installModule(store, rootState, path, rootModule) {
     rootModule.forEachMutations((key, val) => {
         store._mutations[namespaced + key] = (store._mutations[namespaced + key] || [])
         store._mutations[namespaced + key].push((payload) => {
-            val(getState(store, path), payload)
+            store._withCommiting(() => {
+                val(getState(store, path), payload)
+            })
             // 执行 subscribe 中传入的函数
             store.subscribes.forEach(fn => {
                 fn({ type: key, payload }, store.state)
@@ -90,6 +94,15 @@ function resetStoreVM(store, state) {
         computed,
     })
 
+    // 严格模式下监听 state 变化
+    if (store.strict) {
+        store._vm.$watch(() => store._vm._data.$$state, () => {
+            if (!store._commiting) {
+                throw new Error("Do not mutate vuex store state outside mutation handlers");
+            }
+        }, { sync: true, deep: true })
+    }
+
 
     if (oldVm) {
         Vue.nextTick(() => oldVm.$destroy())
@@ -119,6 +132,8 @@ class Store {
         this._warppedGetters = Object.create(null)
         this.plugins = options.plugins || []
         this.subscribes = []
+        this.strict = options.strict
+        this._commiting = false
         // state
         const state = this._modules.root.state
         // 安装模块
@@ -131,6 +146,16 @@ class Store {
         // 执行插件（插件就是函数），插件方法接收一个参数，store
         this.plugins.forEach(plugin => plugin(this))
 
+    }
+
+    /**
+     * 如果开严格模式，修改的state必须通过此方法包装，否则判定为非法修改
+     * @param {Function} fn 方法
+     */
+    _withCommiting(fn) {
+        this._commiting = true
+        fn()
+        this._commiting = false
     }
 
     // 通过 commit 调用 mutations
@@ -179,8 +204,9 @@ class Store {
      * @param {Object} state 替换后的状态
      */
     replaceState(state) {
-        this._vm._data.$$state = state
-        console.log(this._vm._data);
+        this._withCommiting(() => {
+            this._vm._data.$$state = state
+        })
     }
 
 }
