@@ -4,13 +4,13 @@
      <img src="https://img.shields.io/badge/license-MIT-success"/>
 </p>
 
-## 系统说明
+## 项目说明
 
 - 基于 rollup 打包，**仿照 Vue2 及其周边生态源码**实现的一款简易 JavaScript 框架
 - 实现了 Vue 的数据劫持、响应式、diff等**核心原理**以及 watch、computed、$nextTick 、Vue.component 等部分 API
 - 实现了 Vue Router 的 **hash 和 history 模式**，支持路由跳转以及**前置 / 后置路由守卫**
+- 实现了 Vuex 的基本架构，内置有 **logger 日志插件和 persists 持久化插件**可供选择
 - 简化了 Vue2 冗杂难懂的源码，**以最简单的方式实现最核心的功能**，注释丰富，文档齐全，**适合新手学习**
-- 个人开发，水平有限，本项目**仅限学习使用**，并不具备实际应用价值
 
 #### 分支说明
 
@@ -20,8 +20,6 @@
 #### 配套文档
 
 - 🔥 [mini-Vue2 配套文档（持续更新中）](https://nwu23787.github.io/vuepress-blog/miniVue2/)
-
-
 
 ## 快速开始
 
@@ -37,7 +35,7 @@
 ```lua
 mini-Vue2  -- https://github.com/Nwu23787/mini-Vue2
 
-mini-Vue2
+mini-Vue2 -- 仿 Vue2
 ├── demo -- 测试用例文件夹
 ├── node_modules -- 依赖包文件夹
 ├── dist -- 打包出口
@@ -60,19 +58,32 @@ mini-Vue2
      ├── utils.js -- 工具文件
      └── index.js -- 主文件
 
-mini-vue-router3
+mini-Vue-Router3 -- 仿 Vue-Router3
 ├── mini-vue-router3 -- 源文件
-		├── components -- 路由相关组件
-				├── link.js -- <router-link> 定义
-				└── view.js -- <router-view> 定义
-		├── history -- history 对象
-				├── base.js -- history 父类
-				├── html5.js -- history 模式的 history 对象
-				└── hash.js -- hash 模式的 history 对象
-		├── creat-matcher.js -- 创建路由匹配器
-		├── create-router-map.js  -- 创建路由映射表
-		├── index.js -- 主文件
-		└── install.js -- 插件的 install 方法
+	├── components -- 路由相关组件
+			├── link.js -- <router-link> 定义
+			└── view.js -- <router-view> 定义
+	├── history -- history 对象
+			├── base.js -- history 父类
+			├── html5.js -- history 模式的 history 对象
+			└── hash.js -- hash 模式的 history 对象
+	├── creat-matcher.js -- 创建路由匹配器
+	├── create-router-map.js  -- 创建路由映射表
+	├── index.js -- 主文件
+	└── install.js -- 插件的 install 方法
+└── test -- 测试用例项目	
+
+mini-Vuex3 -- 仿 Vuex3 
+├── mini-Vuex3 -- 源文件
+	├── module -- 路由相关组件
+			├── module-collection.js -- 创建根 module
+			└── module.js -- module 类
+	├── pulgins -- 插件
+			├── logger.js -- 日志插件
+			└── persists.js -- 持久化插件
+	├── creat-matcher.js -- 创建路由匹配器
+	├── index.js -- 主文件
+	└── install.js -- 插件的 install 方法
 └── test -- 测试用例项目	
 ```
 
@@ -138,18 +149,48 @@ mini-vue-router3
    }).$mount('#app')
    ```
 
+### mini-Vuex3
+
+1. clone 项目到本地
+
+2. 引入 mini-Vuex3 文件夹到你的项目中
+
+   ```js
+   import Vuex from '../../mini-vue3'
+   ```
+
+3. 使用 Vue.use 注册 Vuex 插件
+
+   ```js
+   Vue.use(Vuex)
+   ```
+
+4. 配置你的全局状态管理库 store，语法与 Vuex3 一致，可参考 `test/src/store/index.js` 
+
+5. 将配置好的 store 传入 Vue 根实例中：
+
+   ```js
+   new Vue({
+     store,
+     render: h => h(App)
+   }).$mount('#app')
+   ```
+
 ### 开源共建
 
 ### 开源协议
 
 mini-Vue2 开源项目遵循[MIT License](https://opensource.org/license/mit)。
+
 允许**个人使用、商业使用、复制、分发、修改**，但务必保留作者、Copyright 信息。
 
 ### 其他说明
 
-1. **请注意本项目的版本**！mini-vue2 仿照 vue 2.x 实现，mini-vue-router3 仿照 Vue Router 3 实现，故不支持 Vue3，**请勿在 Vue3 项目中使用 mini-vue-router3**。
+1. **请注意本项目的版本**！mini-vue2 仿照 vue 2.x 实现，mini-Vuex3 仿照 Vuex3 实现，mini-vue-router3 仿照 Vue Router 3 实现，故不支持 Vue3，**请勿在 Vue3 项目中使用 mini-vue-router3**。
 
-1. 欢迎提交 [pr](https://github.com/Nwu23787/mini-Vue2/pulls)，注意对应提交对应 `dev` 分支
+2. 个人开发项目，水平有限，本项目**仅适用于源码学习**，暂不支持实际应用
+
+1. 由于是简易版实现，仍有众多功能暂未实现（尤其在 mini-Vue2 中），欢迎大家提交 [pr](https://github.com/Nwu23787/mini-Vue2/pulls)，**注意提交至对应 `dev` 分支**
 
    <details>
     <summary>代码规范说明</summary>
@@ -160,7 +201,7 @@ mini-Vue2 开源项目遵循[MIT License](https://opensource.org/license/mit)。
      3. 命名风格良好
      4. :information_source: 请注意你的 vscode 自动格式化插件的代码风格是否与本项目一致
 
-2. 欢迎提交 [issues](https://github.com/Nwu23787/mini-Vue2/issues)，请写清楚遇到问题的原因、复显步骤。
+4. 欢迎提交 [issues](https://github.com/Nwu23787/mini-Vue2/issues)，请写清楚遇到问题的原因、复显步骤。
 
 #### 其他项目
 
@@ -171,3 +212,11 @@ mini-Vue2 开源项目遵循[MIT License](https://opensource.org/license/mit)。
 - 👉🏻 [基于vuepress实现的简易博客平台](https://github.com/Nwu23787/vuepress-blog)
 
 - :hot_pepper:更多项目参见个人主页
+
+#### 相关链接
+
+- :eight_pointed_black_star:[vuejs/vue](https://github.com/vuejs/vue)
+- :eight_pointed_black_star:[vuejs/vuex](https://github.com/vuejs/vuex)
+
+- :eight_pointed_black_star:[vuejs/vue-router](https://github.com/vuejs/vue-router)
+
